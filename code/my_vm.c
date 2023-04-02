@@ -4,6 +4,8 @@ void *start_physical_mem;
 char *phys_bitmap, *virt_bitmap;
 int bits_for_pd, bits_for_pt;
 
+
+
 /*
 Function responsible for allocating and setting your physical memory 
 */
@@ -22,10 +24,6 @@ void set_physical_mem() {
 
     if ( (ADDR_BITS - BITS_FOR_OFFSET) % 2) bits_for_pt = bits_for_pd + 1;
     else bits_for_pt = bits_for_pd;
-    
-    
-
-
 
     //HINT: Also calculate the number of physical and virtual pages and allocate
     //virtual and physical bitmaps and initialize them
