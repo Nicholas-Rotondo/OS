@@ -1,7 +1,7 @@
 #include "my_vm.h"
 
-void *start_physical_mem;
-char *phys_bitmap, *virt_bitmap;
+void *start_physical_mem = NULL;
+char *phys_bitmap = NULL, *virt_bitmap = NULL;
 int bits_for_pd, bits_for_pt;
 
 
@@ -132,11 +132,30 @@ page_map(pde_t *pgdir, void *va, void *pa)
 /*Function that gets the next available page
 */
 void *get_next_avail(int num_pages) {
+
+    unsigned long *avail_pages = (unsigned long *)malloc(num_pages * sizeof(unsigned long));
+
+    unsigned long page_addr = start_physical_mem;
+
+    int num_page = 0;
  
     for ( int i = 0; i < NUM_PAGES/8; i++ ) {
-        if ( virt_bitmap[i] != 255 ) {
-            
-        }
+        if ( phys_bitmap[i] == 255 ) {
+            page_addr += (PGSIZE * 8);
+        } else {
+            char temp = phys_bitmap;
+            int map = 1;
+            for ( int j = 0; j < 8; j++ ) {
+                if ( temp & map == 0 ) {
+                    avail_pages[num_page++] = page_addr;
+                    if ( num_page == num_pages ) return avail_pages;
+                    else page_addr += PGSIZE;
+                } else {
+                    temp >>= 1;
+                    page_addr += PGSIZE;
+                }
+            }
+        } 
     }
 }
 
@@ -149,6 +168,8 @@ void *t_malloc(unsigned int num_bytes) {
     /* 
      * HINT: If the physical memory is not yet initialized, then allocate and initialize.
      */
+
+    if ( start_physical_mem == NULL ) set_physical_mem();
 
    /* 
     * HINT: If the page directory is not initialized, then initialize the
