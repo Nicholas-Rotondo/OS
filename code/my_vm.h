@@ -10,12 +10,19 @@
 //Add any important includes here which you may need
 
 #define PGSIZE 4096
+#define BITS_FOR_OFFSET (log2(PGSIZE))
 
 // Maximum size of virtual memory
 #define MAX_MEMSIZE 4ULL*1024*1024*1024
 
 // Size of "physcial memory"
 #define MEMSIZE 1024*1024*1024
+
+// Number of bits in an address
+#define ADDR_BITS 32
+
+// Number of pages in memory
+#define NUM_PAGES ((MEMSIZE)/(PGSIZE))
 
 // Represents a page table entry
 typedef unsigned long pte_t;
