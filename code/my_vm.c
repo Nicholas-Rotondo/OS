@@ -1,5 +1,9 @@
 #include "my_vm.h"
 
+void *start_physical_mem;
+char *phys_bitmap, *virt_bitmap;
+int bits_for_pd, bits_for_pt;
+
 /*
 Function responsible for allocating and setting your physical memory 
 */
@@ -8,8 +12,21 @@ void set_physical_mem() {
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
 
-    //e
+    start_physical_mem = (void *)malloc(MEMSIZE);
+
+    phys_bitmap = (char *)malloc(NUM_PAGES/8);
+    virt_bitmap = (char *)malloc(NUM_PAGES/8);
+
+
+    bits_for_pd = (ADDR_BITS - BITS_FOR_OFFSET) / 2;
+
+    if ( (ADDR_BITS - BITS_FOR_OFFSET) % 2) bits_for_pt = bits_for_pd + 1;
+    else bits_for_pt = bits_for_pd;
     
+    
+
+
+
     //HINT: Also calculate the number of physical and virtual pages and allocate
     //virtual and physical bitmaps and initialize them
 
@@ -77,7 +94,19 @@ pte_t *translate(pde_t *pgdir, void *va) {
     * Part 2 HINT: Check the TLB before performing the translation. If
     * translation exists, then you can return physical address from the TLB.
     */
+    unsigned long virt_addr = va;
 
+    unsigned long offset_mask = PGSIZE - 1;
+    unsigned long offset = virt_addr & offset_mask;
+
+    unsigned long pt_mask = ((2^bits_for_pt) - 1) << offset;
+    unsigned long pt_index = (virt_addr & pt_index) >> offset;
+
+    unsigned long pd_mask = (((2^bits_for_pd) - 1) << offset) << bits_for_pt;
+    unsigned long pd_index = ((virt_addr & pd_mask) >> bits_for_pt) >> offset;
+
+    pte_t *pt_addr = pgdir[pd_index];
+    pte_t *phys_addr = pt_addr[pt_index];
 
     //If translation not successful, then return NULL
     return NULL; 
@@ -106,7 +135,11 @@ page_map(pde_t *pgdir, void *va, void *pa)
 */
 void *get_next_avail(int num_pages) {
  
-    //Use virtual address bitmap to find the next free page
+    for ( int i = 0; i < NUM_PAGES/8; i++ ) {
+        if ( virt_bitmap[i] != 255 ) {
+            
+        }
+    }
 }
 
 
