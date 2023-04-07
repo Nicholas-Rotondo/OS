@@ -1,10 +1,9 @@
 #include "my_vm.h"
 
-void *start_physical_mem = NULL;
-char *phys_bitmap = NULL, *virt_bitmap = NULL;
-int bits_for_pd, bits_for_pt;
-
-
+unsigned long start_phys_mem;
+pde_t *pg_dir = NULL;
+unsigned char *phys_bitmap = NULL, *virt_bitmap = NULL;
+int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
 
 /*
 Function responsible for allocating and setting your physical memory 
@@ -14,27 +13,31 @@ void set_physical_mem() {
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
 
-    start_physical_mem = (void *)malloc(MEMSIZE);
+    pg_dir = (void *)malloc(MEMSIZE);
+    start_phys_mem = pg_dir;
 
-    phys_bitmap = (char *)malloc(NUM_PAGES/8);
-    virt_bitmap = (char *)malloc(NUM_PAGES/8);
+    offbits = log2(PGSIZE);
+    pdbits = (ADDR_BITS - offbits)/2;
+    ptbits = ((ADDR_BITS - offbits)%2) ? pdbits + 1 : pdbits;
 
-
-    bits_for_pd = (ADDR_BITS - BITS_FOR_OFFSET) / 2;
-
-    if ( (ADDR_BITS - BITS_FOR_OFFSET) % 2) bits_for_pt = bits_for_pd + 1;
-    else bits_for_pt = bits_for_pd;
+    offmask = PGSIZE - 1;
+    ptmask = ((int)pow(2, ptbits) - 1) << offbits;
+    pdmask = (((int)pow(2, pdbits) - 1) << offbits ) << ptbits;
 
     //HINT: Also calculate the number of physical and virtual pages and allocate
     //virtual and physical bitmaps and initialize them
+
+    phys_bitmap = (unsigned char *)malloc(NUM_PAGES/8);
+    virt_bitmap = (unsigned char *)malloc(((int)pow(2, ptbits)*(PGSIZE/4))/8);
+
 
 }
 
 
 /*
- * Part 2: Add a virtual to physical page translation to the TLB.
- * Feel free to extend the function arguments or return type.
- */
+* Part 2: Add a virtual to physical page translation to the TLB.
+* Feel free to extend the function arguments or return type.
+*/
 int
 add_TLB(void *va, void *pa)
 {
@@ -46,10 +49,10 @@ add_TLB(void *va, void *pa)
 
 
 /*
- * Part 2: Check TLB for a valid translation.
- * Returns the physical page address.
- * Feel free to extend this function and change the return type.
- */
+* Part 2: Check TLB for a valid translation.
+* Returns the physical page address.
+* Feel free to extend this function and change the return type.
+*/
 pte_t *
 check_TLB(void *va) {
 
@@ -57,14 +60,14 @@ check_TLB(void *va) {
 
 
 
-   /*This function should return a pte_t pointer*/
+/*This function should return a pte_t pointer*/
 }
 
 
 /*
- * Part 2: Print TLB miss rate.
- * Feel free to extend the function arguments or return type.
- */
+* Part 2: Print TLB miss rate.
+* Feel free to extend the function arguments or return type.
+*/
 void
 print_TLB_missrate()
 {
@@ -94,14 +97,9 @@ pte_t *translate(pde_t *pgdir, void *va) {
     */
     unsigned long virt_addr = va;
 
-    unsigned long offset_mask = PGSIZE - 1;
-    unsigned long offset = virt_addr & offset_mask;
-
-    unsigned long pt_mask = ((2^bits_for_pt) - 1) << offset;
-    unsigned long pt_index = (virt_addr & pt_index) >> offset;
-
-    unsigned long pd_mask = (((2^bits_for_pd) - 1) << offset) << bits_for_pt;
-    unsigned long pd_index = ((virt_addr & pd_mask) >> bits_for_pt) >> offset;
+    unsigned long offset = virt_addr & offmask;
+    unsigned long pt_index = (virt_addr & ptmask) >> offset;
+    unsigned long pd_index = ((virt_addr & pdmask) >> ptbits) >> offset;
 
     pte_t *pt_addr = pgdir[pd_index];
     pte_t *phys_addr = pt_addr[pt_index];
@@ -125,6 +123,21 @@ page_map(pde_t *pgdir, void *va, void *pa)
     and page table (2nd-level) indices. If no mapping exists, set the
     virtual to physical mapping */
 
+    unsigned long virt_addr = va;
+
+    unsigned long offset = virt_addr & offmask;
+    unsigned long pt_index = (virt_addr & ptmask) >> offset;
+    unsigned long pd_index = ((virt_addr & pdmask) >> ptbits) >> offset;
+
+    pte_t *pt_addr = pgdir[pd_index];
+    void *pfn_addr = pt_addr[pt_index];
+
+    if ( ! pfn_addr ) {
+        pfn_addr = pa;
+    } else {
+        return -1;
+    }
+
     return -1;
 }
 
@@ -134,31 +147,67 @@ page_map(pde_t *pgdir, void *va, void *pa)
 void *get_next_avail(int num_pages) {
 
     unsigned long *avail_pages = (unsigned long *)malloc(num_pages * sizeof(unsigned long));
-
-    unsigned long page_addr = start_physical_mem;
+    unsigned long page_addr = start_phys_mem;
 
     int num_page = 0;
- 
+
     for ( int i = 0; i < NUM_PAGES/8; i++ ) {
-        if ( phys_bitmap[i] == 255 ) {
-            page_addr += (PGSIZE * 8);
-        } else {
-            char temp = phys_bitmap;
-            int map = 1;
+
+        if ( phys_bitmap[i] == 255 ) page_addr += (PGSIZE * 8); 
+
+        else {
+            unsigned char map = 1;
             for ( int j = 0; j < 8; j++ ) {
-                if ( temp & map == 0 ) {
+
+                if ( ! (phys_bitmap[i] & map) ) {
+
                     avail_pages[num_page++] = page_addr;
+                    phys_bitmap[i] |= map;
                     if ( num_page == num_pages ) return avail_pages;
-                    else page_addr += PGSIZE;
-                } else {
-                    temp >>= 1;
-                    page_addr += PGSIZE;
+                    
                 }
+                page_addr += PGSIZE;
+                map <<= 1;
             }
         } 
+
     }
 }
 
+unsigned long get_next_vpn(int num_pages){
+
+    unsigned long temp_vpn = 0;
+    unsigned long vpn = 0;
+    int counter = 0;
+
+    for ( int i = 0; i < NUM_PAGES/8; i++ ) {
+
+        if ( virt_bitmap[i] == 255 ) vpn += (PGSIZE * 8); 
+
+        else {
+            unsigned char map = 1;
+            for ( int j = 0; j < 8; j++ ) {
+
+                if ( ! (phys_bitmap[i] & map) ) {
+                    vpn = temp_vpn;
+                    if ( ++counter == num_pages ) goto found_vpn;
+                } else {
+                    counter = 0;
+                }
+                vpn += PGSIZE;
+                map <<= 1;
+            }
+        } 
+
+    }
+
+    return
+
+    found_vpn:
+
+
+
+}
 
 /* Function responsible for allocating pages
 and used by the benchmark
@@ -166,17 +215,26 @@ and used by the benchmark
 void *t_malloc(unsigned int num_bytes) {
 
     /* 
-     * HINT: If the physical memory is not yet initialized, then allocate and initialize.
-     */
+    * HINT: If the physical memory is not yet initialized, then allocate and initialize.
+    */
 
-    if ( start_physical_mem == NULL ) set_physical_mem();
-
-   /* 
+    if ( pg_dir == NULL ) {
+        set_physical_mem();
+        phys_bitmap[0] |= 1;
+    }
+/* 
     * HINT: If the page directory is not initialized, then initialize the
     * page directory. Next, using get_next_avail(), check if there are free pages. If
     * free pages are available, set the bitmaps and map a new page. Note, you will 
     * have to mark which physical pages are used. 
     */
+
+    int num_pages = (num_bytes+PGSIZE-1)/PGSIZE;
+
+    unsigned long *pfns = get_next_avail(num_pages);
+    unsigned long *vpns = get_next_vpn(num_pages);
+
+    for ( int i = 0; i < num_pages; i++);
 
     return NULL;
 }
@@ -186,26 +244,26 @@ void *t_malloc(unsigned int num_bytes) {
 void t_free(void *va, int size) {
 
     /* Part 1: Free the page table entries starting from this virtual address
-     * (va). Also mark the pages free in the bitmap. Perform free only if the 
-     * memory from "va" to va+size is valid.
-     *
-     * Part 2: Also, remove the translation from the TLB
-     */
+    * (va). Also mark the pages free in the bitmap. Perform free only if the 
+    * memory from "va" to va+size is valid.
+    *
+    * Part 2: Also, remove the translation from the TLB
+    */
     
 }
 
 
 /* The function copies data pointed by "val" to physical
- * memory pages using virtual address (va)
- * The function returns 0 if the put is successfull and -1 otherwise.
+* memory pages using virtual address (va)
+* The function returns 0 if the put is successfull and -1 otherwise.
 */
 int put_value(void *va, void *val, int size) {
 
     /* HINT: Using the virtual address and translate(), find the physical page. Copy
-     * the contents of "val" to a physical page. NOTE: The "size" value can be larger 
-     * than one page. Therefore, you may have to find multiple pages using translate()
-     * function.
-     */
+    * the contents of "val" to a physical page. NOTE: The "size" value can be larger 
+    * than one page. Therefore, you may have to find multiple pages using translate()
+    * function.
+    */
 
 
     /*return -1 if put_value failed and 0 if put is successfull*/
@@ -233,11 +291,11 @@ multiplication, copy the result to answer.
 void mat_mult(void *mat1, void *mat2, int size, void *answer) {
 
     /* Hint: You will index as [i * size + j] where  "i, j" are the indices of the
-     * matrix accessed. Similar to the code in test.c, you will use get_value() to
-     * load each element and perform multiplication. Take a look at test.c! In addition to 
-     * getting the values from two matrices, you will perform multiplication and 
-     * store the result to the "answer array"
-     */
+    * matrix accessed. Similar to the code in test.c, you will use get_value() to
+    * load each element and perform multiplication. Take a look at test.c! In addition to 
+    * getting the values from two matrices, you will perform multiplication and 
+    * store the result to the "answer array"
+    */
     int x, y, val_size = sizeof(int);
     int i, j, k;
     for (i = 0; i < size; i++) {
