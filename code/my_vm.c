@@ -130,6 +130,13 @@ page_map(pde_t *pgdir, void *va, void *pa)
     unsigned long pd_index = ((virt_addr & pdmask) >> ptbits) >> offset;
 
     pte_t *pt_addr = pgdir[pd_index];
+
+    if ( pt_addr == NULL ) {
+        unsigned long next_page_table = get_next_cont(((int)pow(2, ptbits))/(PGSIZE/4));
+        if ( next_page_table == 0 ) return -1;
+        pt_addr = next_page_table;
+    }
+
     void *pfn_addr = pt_addr[pt_index];
 
     if ( ! pfn_addr ) {
@@ -174,6 +181,48 @@ void *get_next_avail(int num_pages) {
     }
 }
 
+unsigned long get_next_cont(int num_pages) {
+
+    unsigned long page_addr = start_phys_mem;
+    unsigned long start_addr = start_phys_mem;
+    int num_page = 0;
+
+    for ( int i = 0; i < NUM_PAGES/8; i++ ) {
+
+        if ( phys_bitmap[i] == 255 ) page_addr += 8; 
+
+        else {
+            unsigned char map = 1;
+            for ( int j = 0; j < 8; j++ ) {
+
+                if ( ! (phys_bitmap[i] & map) ) {
+                    if ( num_page == 1 ) start_addr = page_addr;
+                    if ( num_page == num_pages ) goto found_cont;
+                } else num_page = 0;
+                page_addr++;
+                map <<= 1;
+            }
+        } 
+
+    }
+
+    if ( num_page != num_pages ) return NULL;
+
+    found_cont:
+
+    for ( int i = 0; i < num_pages; i++ ) {
+        unsigned long temp = start_addr + i;
+        unsigned long bitmap_index = temp / 8;
+        unsigned long bitmap_offset = temp % 8;
+
+        unsigned char map = 1 << bitmap_offset;
+
+        virt_bitmap[bitmap_index] |= map;
+    }
+
+    return start_addr << offbits;
+}
+
 unsigned long get_next_vpn(int num_pages){
 
     unsigned long temp_vpn = 0;
@@ -182,28 +231,38 @@ unsigned long get_next_vpn(int num_pages){
 
     for ( int i = 0; i < NUM_PAGES/8; i++ ) {
 
-        if ( virt_bitmap[i] == 255 ) vpn += (PGSIZE * 8); 
+        if ( virt_bitmap[i] == 255 ) vpn ++; 
 
         else {
             unsigned char map = 1;
             for ( int j = 0; j < 8; j++ ) {
 
-                if ( ! (phys_bitmap[i] & map) ) {
+                if ( ! (virt_bitmap[i] & map) ) {
                     vpn = temp_vpn;
                     if ( ++counter == num_pages ) goto found_vpn;
                 } else {
                     counter = 0;
                 }
-                vpn += PGSIZE;
+                vpn++;
                 map <<= 1;
             }
         } 
 
     }
 
-    return
-
     found_vpn:
+
+    for ( int i = 0; i < num_pages; i++ ) {
+        unsigned long temp = vpn + i;
+        unsigned long bitmap_index = temp / 8;
+        unsigned long bitmap_offset = temp % 8;
+
+        unsigned char map = 1 << bitmap_offset;
+
+        virt_bitmap[bitmap_index] |= map;
+    }
+
+    return vpn << offbits;
 
 
 
@@ -232,9 +291,11 @@ void *t_malloc(unsigned int num_bytes) {
     int num_pages = (num_bytes+PGSIZE-1)/PGSIZE;
 
     unsigned long *pfns = get_next_avail(num_pages);
-    unsigned long *vpns = get_next_vpn(num_pages);
+    unsigned long vpn = get_next_vpn(num_pages);
 
-    for ( int i = 0; i < num_pages; i++);
+    for ( int i = 0; i < num_pages; i++) {
+        if (page_map(pg_dir, vpn + (PGSIZE*i), pfns[i]) == -1) return -1;
+    }
 
     return NULL;
 }
