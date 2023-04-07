@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 //Assume the address space is 32 bits, so the max memory size is 4GB
 //Page size is 4KB
@@ -10,7 +11,7 @@
 //Add any important includes here which you may need
 
 #define PGSIZE 4096
-#define BITS_FOR_OFFSET (log2(PGSIZE))
+
 
 // Maximum size of virtual memory
 #define MAX_MEMSIZE 4ULL*1024*1024*1024
