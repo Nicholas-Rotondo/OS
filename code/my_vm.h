@@ -43,6 +43,20 @@ struct tlb {
 };
 struct tlb tlb_store;
 
+typedef struct bitmap{
+
+    unsigned char *bitmap;
+    unsigned int map_length, map_size;
+
+}bitmap_t;
+
+typedef struct mpnode {
+
+    struct mbnode *next;
+    unsigned long start_addr;
+    unsigned int num_pages;
+
+} mpnode_t;
 
 void set_physical_mem();
 pte_t* translate(pde_t *pgdir, void *va);
