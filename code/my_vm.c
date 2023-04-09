@@ -354,6 +354,18 @@ int put_value(void *va, void *val, int size) {
     * function.
     */
 
+   int num_pages = (size+PGSIZE-1)/PGSIZE;
+
+   for ( int i = 0; i < num_pages; i++) {
+        void *pa = translate(pg_dir, va+(i*PGSIZE));
+        if ( pa == NULL ) return -1;
+
+        int bytes_to_copy = (size > PGSIZE) ? PGSIZE : size;
+        memcpy(pa, val+(PGSIZE*i), bytes_to_copy);
+
+        size -= PGSIZE;
+   }
+
 
     /*return -1 if put_value failed and 0 if put is successfull*/
 
@@ -366,6 +378,18 @@ void get_value(void *va, void *val, int size) {
     /* HINT: put the values pointed to by "va" inside the physical memory at given
     * "val" address. Assume you can access "val" directly by derefencing them.
     */
+
+   int num_pages = (size+PGSIZE-1)/PGSIZE;
+
+   for ( int i = 0; i < num_pages; i++ ) {
+        void *pa = translate(pg_dir, va+(i*PGSIZE));
+        if ( pa == NULL ) return;
+
+        int bytes_to_copy = (size > PGSIZE) ? PGSIZE : size;
+        memcpy(val+(i*PGSIZE), pa, bytes_to_copy);
+
+        size -= PGSIZE;
+   }
 
 
 }
