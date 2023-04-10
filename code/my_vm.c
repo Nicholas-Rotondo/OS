@@ -19,6 +19,8 @@ int set_physical_mem() {
     pgdir = (pde_t *)malloc(MEMSIZE);
     if ( pgdir == NULL ) return -1;
 
+    initialize_page_directory();
+
     start_phys_mem = (unsigned long) pgdir;
 
     offbits = log2(PGSIZE);
@@ -26,8 +28,8 @@ int set_physical_mem() {
     ptbits = ((ADDR_BITS - offbits)%2) ? pdbits + 1 : pdbits;
 
     offmask = PGSIZE - 1;
-    ptmask = ((int)pow(2, ptbits) - 1) << offbits;
-    pdmask = (((int)pow(2, pdbits) - 1) << offbits ) << ptbits;
+    ptmask = (exp_2(ptbits) - 1) << offbits;
+    pdmask = ((exp_2(pdbits) - 1) << offbits ) << ptbits;
 
     //HINT: Also calculate the number of physical and virtual pages and allocate
     //virtual and physical bitmaps and initialize them
@@ -41,7 +43,7 @@ int set_physical_mem() {
 
     virt_bitmap = (bitmap_t *)malloc(sizeof(bitmap_t));
     if ( virt_bitmap == NULL ) return -1;
-    virt_bitmap->map_size = (PGSIZE/4) * (int)(pow(2, ptbits));
+    virt_bitmap->map_size = (PGSIZE/4) * exp_2(ptbits);
     virt_bitmap->map_length = virt_bitmap->map_size/8; 
     virt_bitmap->bitmap = (unsigned char *)malloc(virt_bitmap->map_length);
     if ( virt_bitmap->bitmap == NULL ) return -1;
@@ -119,6 +121,8 @@ unsigned long translate(unsigned long va) {
      if ( pd_index >= PGSIZE/4 ) return 0;
 
     pte_t *pgtable = (pte_t *)pgdir[pd_index];
+    if ( pgtable == NULL ) return 0;
+
     unsigned long pfn = pgtable[pt_index];
 
     if ( pfn == 0 ) return 0;
@@ -145,7 +149,7 @@ int page_map(unsigned long va, unsigned long pa) {
     if ( pd_index >= PGSIZE/4 ) return -1;
 
     if ( pgdir[pd_index] == 0 ) {
-        unsigned long next_page_table = get_next_cont(((int)pow(2, ptbits))/(PGSIZE/4));
+        unsigned long next_page_table = get_next_cont((exp_2(ptbits))/(PGSIZE/4));
         if ( next_page_table == 0 ) return -1;
         pgdir[pd_index] = next_page_table;
     }
@@ -325,23 +329,25 @@ void t_free(void *va, int size) {
     *
     * Part 2: Also, remove the translation from the TLB
     */
+
+   unsigned long virt_addr = (unsigned long) va;
+
+   if ( virt_addr % PGSIZE != 0 ) return;   // Ensure address to be freed is the start of a page
     
    int num_pages = (size+PGSIZE-1)/PGSIZE;
 
    for ( int i = 0; i < num_pages; i++ ) {
-        if ( get_bitmap(virt_bitmap, (unsigned long) va + (i*PGSIZE)) != 1) {
-            return;
-        }
+        if ( get_bitmap(virt_bitmap, virt_addr + (i*PGSIZE)) != 1) return;  // Ensure all pages being freed are currently in use
    }
 
    for ( int i = 0; i < num_pages; i++ ) {
-        unsigned long pa = translate((unsigned long) va + (i*PGSIZE));
-        set_bitmap(phys_bitmap, pa, 0);
+        unsigned long pa = translate(virt_addr + (i*PGSIZE));
+        set_bitmap(phys_bitmap, pa, 0);     // Set all physical pages as free in physical bitmap
    }
 
    for ( int i = 0; i < num_pages; i++ ) {
-        page_map((unsigned long) va + (i*PGSIZE), 0);
-        set_bitmap(virt_bitmap, (unsigned long) va + (i*PGSIZE), 0);
+        page_map(virt_addr + (i*PGSIZE), 0);    // Map all pages being freed to NULL
+        set_bitmap(virt_bitmap, virt_addr + (i*PGSIZE), 0);     // Set all virtual pages as free in virtual bitmap
    }
 
 
@@ -480,4 +486,16 @@ int get_bitmap(bitmap_t *bitmap, unsigned long addr){
 
     return (map &= bitmap->bitmap[bitmap_index]) >> bitmap_offset;
 
+}
+
+void initialize_page_directory() {
+
+    for ( int i = 0; i < PTE_PER_PAGE; i++ ) pgdir[i] = 0;
+
+}
+
+int exp_2(int power){
+    int result = 1;
+    for ( int i = 0; i < power; i++ ) result *= 2;
+    return result;
 }

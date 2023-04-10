@@ -26,6 +26,8 @@
 // Number of pages in memory
 #define NUM_PAGES ((MEMSIZE)/(PGSIZE))
 
+#define PTE_PER_PAGE ((PGSIZE)/(4))
+
 // Represents a page table entry
 typedef unsigned long pte_t;
 
@@ -75,5 +77,7 @@ void mat_mult(void *mat1, void *mat2, int size, void *answer);
 void print_TLB_missrate();
 void set_bitmap(bitmap_t *bitmap, unsigned long addr, int value);
 int get_bitmap(bitmap_t *bitmap, unsigned long addr);
+void initialize_page_directory();
+int exp_2(int power);
 
 #endif
