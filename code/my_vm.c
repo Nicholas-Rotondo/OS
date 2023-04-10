@@ -1,10 +1,11 @@
 #include "my_vm.h"
 
 unsigned long start_phys_mem;
-pde_t *pg_dir = NULL;
+
+pde_t *pgdir = NULL;
 mpnode_t *mp_list = NULL;
 bitmap_t *phys_bitmap = NULL, *virt_bitmap = NULL;
-unsigned char *phys_bitmap = NULL, *virt_bitmap = NULL;
+
 int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
 
 /*
@@ -15,8 +16,8 @@ void set_physical_mem() {
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
 
-    pg_dir = (void *)malloc(MEMSIZE);
-    start_phys_mem = pg_dir;
+    pgdir = (pde_t *)malloc(MEMSIZE);
+    start_phys_mem = (unsigned long) pgdir;
 
     offbits = log2(PGSIZE);
     pdbits = (ADDR_BITS - offbits)/2;
@@ -142,7 +143,7 @@ page_map(pde_t *pgdir, void *va, void *pa)
     if ( pgdir[pd_index] == NULL ) {
         unsigned long next_page_table = get_next_cont(((int)pow(2, ptbits))/(PGSIZE/4));
         if ( next_page_table == 0 ) return -1;
-        pg_dir[pd_index] = next_page_table;
+        pgdir[pd_index] = next_page_table;
     }
 
     pte_t *pgtable = pgdir[pd_index];
@@ -277,7 +278,7 @@ void *t_malloc(unsigned int num_bytes) {
     * HINT: If the physical memory is not yet initialized, then allocate and initialize.
     */
 
-    if ( pg_dir == NULL ) {
+    if ( pgdir == NULL ) {
         set_physical_mem();
         phys_bitmap->bitmap[0] |= 1;
     }
@@ -294,7 +295,7 @@ void *t_malloc(unsigned int num_bytes) {
     unsigned long vpn = get_next_vpn(num_pages);
 
     for ( int i = 0; i < num_pages; i++) {
-        if ( page_map(pg_dir, vpn + (PGSIZE*i), pfns[i]) == -1) return -1;
+        if ( page_map(pgdir, vpn + (PGSIZE*i), pfns[i]) == -1) return -1;
     }
 
     if ( num_pages > 1 ) {
@@ -329,12 +330,12 @@ void t_free(void *va, int size) {
    }
 
    for ( int i = 0; i < num_pages; i++ ) {
-        void *pa = translate(pg_dir, va + (i*PGSIZE));
+        void *pa = translate(pgdir, va + (i*PGSIZE));
         set_bitmap(phys_bitmap, pa, 0);
    }
 
    for ( int i = 0; i < num_pages; i++ ) {
-        page_map(pg_dir, va + (i*PGSIZE), NULL);
+        page_map(pgdir, va + (i*PGSIZE), NULL);
         set_bitmap(virt_bitmap, va + (i*PGSIZE), 0);
    }
 
@@ -354,18 +355,26 @@ int put_value(void *va, void *val, int size) {
     * function.
     */
 
-   int num_pages = (size+PGSIZE-1)/PGSIZE;
+   unsigned long virt_addr = va;
 
-   for ( int i = 0; i < num_pages; i++) {
-        void *pa = translate(pg_dir, va+(i*PGSIZE));
-        if ( pa == NULL ) return -1;
+   while ( size > 0 ) {
 
-        int bytes_to_copy = (size > PGSIZE) ? PGSIZE : size;
-        memcpy(pa, val+(PGSIZE*i), bytes_to_copy);
+        void *pa = translate(pgdir, virt_addr);
 
-        size -= PGSIZE;
+        unsigned long offset = virt_addr & offmask;
+        int bytes_left_in_page = PGSIZE - offset;
+
+        if ( size > bytes_left_in_page ) {
+            memcpy(pa, val, bytes_left_in_page);
+            size -= bytes_left_in_page;
+            virt_addr += bytes_left_in_page;
+            val += bytes_left_in_page;
+        } else {
+            memcpy(pa, val, size);
+            return;
+        }
+
    }
-
 
     /*return -1 if put_value failed and 0 if put is successfull*/
 
@@ -379,16 +388,25 @@ void get_value(void *va, void *val, int size) {
     * "val" address. Assume you can access "val" directly by derefencing them.
     */
 
-   int num_pages = (size+PGSIZE-1)/PGSIZE;
+   unsigned long virt_addr = va;
 
-   for ( int i = 0; i < num_pages; i++ ) {
-        void *pa = translate(pg_dir, va+(i*PGSIZE));
-        if ( pa == NULL ) return;
+   while ( size > 0 ) {
 
-        int bytes_to_copy = (size > PGSIZE) ? PGSIZE : size;
-        memcpy(val+(i*PGSIZE), pa, bytes_to_copy);
+        void *pa = translate(pgdir, virt_addr);
 
-        size -= PGSIZE;
+        unsigned long offset = virt_addr & offmask;
+        int bytes_left_in_page = PGSIZE - offset;
+
+        if ( size > bytes_left_in_page ) {
+            memcpy(val, pa, bytes_left_in_page);
+            size -= bytes_left_in_page;
+            virt_addr += bytes_left_in_page;
+            val += bytes_left_in_page;
+        } else {
+            memcpy(val, pa, size);
+            return;
+        }
+
    }
 
 
