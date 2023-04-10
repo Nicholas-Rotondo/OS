@@ -11,12 +11,14 @@ int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
 /*
 Function responsible for allocating and setting your physical memory 
 */
-void set_physical_mem() {
+int set_physical_mem() {
 
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
 
     pgdir = (pde_t *)malloc(MEMSIZE);
+    if ( pgdir == NULL ) return -1;
+
     start_phys_mem = (unsigned long) pgdir;
 
     offbits = log2(PGSIZE);
@@ -31,14 +33,20 @@ void set_physical_mem() {
     //virtual and physical bitmaps and initialize them
 
     phys_bitmap = (bitmap_t *)malloc(sizeof(bitmap_t));
+    if ( phys_bitmap == NULL ) return -1;
     phys_bitmap->map_size = NUM_PAGES;
     phys_bitmap->map_length = NUM_PAGES/8;
     phys_bitmap->bitmap = (unsigned char *)malloc(phys_bitmap->map_length);
+    if ( phys_bitmap->bitmap == NULL ) return -1;
 
     virt_bitmap = (bitmap_t *)malloc(sizeof(bitmap_t));
+    if ( virt_bitmap == NULL ) return -1;
     virt_bitmap->map_size = (PGSIZE/4) * (int)(pow(2, ptbits));
     virt_bitmap->map_length = virt_bitmap->map_size/8; 
     virt_bitmap->bitmap = (unsigned char *)malloc(virt_bitmap->map_length);
+    if ( virt_bitmap->bitmap == NULL ) return -1;
+
+    return 0;
 
 }
 
@@ -96,7 +104,7 @@ print_TLB_missrate()
 The function takes a virtual address and page directories starting address and
 performs translation to return the physical address
 */
-pte_t *translate(pde_t *pgdir, void *va) {
+unsigned long translate(unsigned long va) {
     /* Part 1 HINT: Get the Page directory index (1st level) Then get the
     * 2nd-level-page table index using the virtual address.  Using the page
     * directory index and page table index get the physical address.
@@ -104,16 +112,16 @@ pte_t *translate(pde_t *pgdir, void *va) {
     * Part 2 HINT: Check the TLB before performing the translation. If
     * translation exists, then you can return physical address from the TLB.
     */
-    unsigned long virt_addr = va;
 
-    unsigned long offset = virt_addr & offmask;
-    unsigned long pt_index = (virt_addr & ptmask) >> offset;
-    unsigned long pd_index = ((virt_addr & pdmask) >> ptbits) >> offset;
-     if ( pd_index >= PGSIZE/4 ) return NULL;
+    unsigned long offset = va & offmask;
+    unsigned long pt_index = (va & ptmask) >> offset;
+    unsigned long pd_index = ((va & pdmask) >> ptbits) >> offset;
+     if ( pd_index >= PGSIZE/4 ) return 0;
 
-    pte_t *pgtable = pgdir[pd_index];
+    pte_t *pgtable = (pte_t *)pgdir[pd_index];
     unsigned long pfn = pgtable[pt_index];
-    if ( pfn == 0 ) return NULL;
+
+    if ( pfn == 0 ) return 0;
     else return ( pfn << offbits ) | offset;
 
 }
@@ -125,33 +133,29 @@ as an argument, and sets a page table entry. This function will walk the page
 directory to see if there is an existing mapping for a virtual address. If the
 virtual address is not present, then a new entry will be added
 */
-int
-page_map(pde_t *pgdir, void *va, void *pa)
-{
+int page_map(unsigned long va, unsigned long pa) {
 
     /*HINT: Similar to translate(), find the page directory (1st level)
     and page table (2nd-level) indices. If no mapping exists, set the
     virtual to physical mapping */
 
-    unsigned long virt_addr = va;
+    unsigned long offset = va & offmask;
+    unsigned long pt_index = (va & ptmask) >> offset;
+    unsigned long pd_index = ((va & pdmask) >> ptbits) >> offset;
+    if ( pd_index >= PGSIZE/4 ) return -1;
 
-    unsigned long offset = virt_addr & offmask;
-    unsigned long pt_index = (virt_addr & ptmask) >> offset;
-    unsigned long pd_index = ((virt_addr & pdmask) >> ptbits) >> offset;
-    if ( pd_index >= PGSIZE/4 ) return NULL;
-
-    if ( pgdir[pd_index] == NULL ) {
+    if ( pgdir[pd_index] == 0 ) {
         unsigned long next_page_table = get_next_cont(((int)pow(2, ptbits))/(PGSIZE/4));
         if ( next_page_table == 0 ) return -1;
         pgdir[pd_index] = next_page_table;
     }
 
-    pte_t *pgtable = pgdir[pd_index];
+    pte_t *pgtable = (pte_t *)pgdir[pd_index];
 
     if ( ! pgtable[pt_index] ) {
         pgtable[pt_index] = pa;
     } else {
-        if ( pa == NULL ) {
+        if ( pa == 0 ) {
             pgtable[pt_index] = pa;
         } else {
             return -1;
@@ -164,7 +168,7 @@ page_map(pde_t *pgdir, void *va, void *pa)
 
 /*Function that gets the next available page
 */
-void *get_next_avail(int num_pages) {
+unsigned long *get_next_avail(int num_pages) {
 
     unsigned long *avail_pages = (unsigned long *)malloc(num_pages * sizeof(unsigned long));
     unsigned long page_addr = start_phys_mem;
@@ -204,6 +208,7 @@ unsigned long get_next_cont(int num_pages) {
 
     unsigned long page_addr = start_phys_mem;
     unsigned long start_addr = start_phys_mem;
+
     int num_page = 0;
 
     for ( int i = 0; i < phys_bitmap->map_length; i++ ) {
@@ -229,7 +234,7 @@ unsigned long get_next_cont(int num_pages) {
 
     }
 
-    return NULL;
+    return 1;
 }
 
 unsigned long get_next_vpn(int num_pages){
@@ -265,7 +270,7 @@ unsigned long get_next_vpn(int num_pages){
 
     }
 
-    return NULL;
+    return 1;
 
 }
 
@@ -279,7 +284,7 @@ void *t_malloc(unsigned int num_bytes) {
     */
 
     if ( pgdir == NULL ) {
-        set_physical_mem();
+        if ( set_physical_mem() == -1 ) return NULL;
         phys_bitmap->bitmap[0] |= 1;
     }
 /* 
@@ -295,16 +300,16 @@ void *t_malloc(unsigned int num_bytes) {
     unsigned long vpn = get_next_vpn(num_pages);
 
     for ( int i = 0; i < num_pages; i++) {
-        if ( page_map(pgdir, vpn + (PGSIZE*i), pfns[i]) == -1) return -1;
+        if ( page_map(vpn + (PGSIZE*i), pfns[i]) == -1 ) return NULL;
     }
 
-    if ( num_pages > 1 ) {
+    /*if ( num_pages > 1 ) {
         mpnode_t *new = (mpnode_t *)malloc(sizeof(mpnode_t));
         new->next = mp_list;
         new->num_pages = num_pages;
         new->start_addr = vpn;
         mp_list = new;
-    }
+    }*/
 
     return NULL;
 }
@@ -324,19 +329,19 @@ void t_free(void *va, int size) {
    int num_pages = (size+PGSIZE-1)/PGSIZE;
 
    for ( int i = 0; i < num_pages; i++ ) {
-        if (get_bitmap(virt_bitmap, va + (i*PGSIZE)) != 1) {
-            return -1;
+        if ( get_bitmap(virt_bitmap, (unsigned long) va + (i*PGSIZE)) != 1) {
+            return;
         }
    }
 
    for ( int i = 0; i < num_pages; i++ ) {
-        void *pa = translate(pgdir, va + (i*PGSIZE));
+        unsigned long pa = translate((unsigned long) va + (i*PGSIZE));
         set_bitmap(phys_bitmap, pa, 0);
    }
 
    for ( int i = 0; i < num_pages; i++ ) {
-        page_map(pgdir, va + (i*PGSIZE), NULL);
-        set_bitmap(virt_bitmap, va + (i*PGSIZE), 0);
+        page_map((unsigned long) va + (i*PGSIZE), 0);
+        set_bitmap(virt_bitmap, (unsigned long) va + (i*PGSIZE), 0);
    }
 
 
@@ -355,11 +360,11 @@ int put_value(void *va, void *val, int size) {
     * function.
     */
 
-   unsigned long virt_addr = va;
+   unsigned long virt_addr = (unsigned long)va;
 
    while ( size > 0 ) {
 
-        void *pa = translate(pgdir, virt_addr);
+        void *pa = (void *)translate(virt_addr);
 
         unsigned long offset = virt_addr & offmask;
         int bytes_left_in_page = PGSIZE - offset;
@@ -371,7 +376,7 @@ int put_value(void *va, void *val, int size) {
             val += bytes_left_in_page;
         } else {
             memcpy(pa, val, size);
-            return;
+            return 0;
         }
 
    }
@@ -388,11 +393,11 @@ void get_value(void *va, void *val, int size) {
     * "val" address. Assume you can access "val" directly by derefencing them.
     */
 
-   unsigned long virt_addr = va;
+   unsigned long virt_addr = (unsigned long)va;
 
    while ( size > 0 ) {
 
-        void *pa = translate(pgdir, virt_addr);
+        void *pa = (void *)translate(virt_addr);
 
         unsigned long offset = virt_addr & offmask;
         int bytes_left_in_page = PGSIZE - offset;

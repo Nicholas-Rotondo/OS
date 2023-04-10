@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 //Assume the address space is 32 bits, so the max memory size is 4GB
 //Page size is 4KB
@@ -58,9 +59,12 @@ typedef struct mpnode {
 
 } mpnode_t;
 
-void set_physical_mem();
-pte_t* translate(pde_t *pgdir, void *va);
-int page_map(pde_t *pgdir, void *va, void* pa);
+int set_physical_mem();
+unsigned long translate(unsigned long va);
+int page_map(unsigned long va, unsigned long pa);
+unsigned long *get_next_avail(int num_pages);
+unsigned long get_next_cont(int num_pages);
+unsigned long get_next_vpn(int num_pages);
 bool check_in_tlb(void *va);
 void put_in_tlb(void *va, void *pa);
 void *t_malloc(unsigned int num_bytes);
@@ -69,5 +73,7 @@ int put_value(void *va, void *val, int size);
 void get_value(void *va, void *val, int size);
 void mat_mult(void *mat1, void *mat2, int size, void *answer);
 void print_TLB_missrate();
+void set_bitmap(bitmap_t *bitmap, unsigned long addr, int value);
+int get_bitmap(bitmap_t *bitmap, unsigned long addr);
 
 #endif
