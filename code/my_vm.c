@@ -51,7 +51,9 @@ int set_physical_mem() {
     if ( virt_bitmap->bitmap == NULL ) return -1;
 
     tlb_list = (queue *)malloc(sizeof(TLB_ENTRIES));
-    tlb_entry = (tlb *)malloc(sizeof(vpn_addr * phys_addr));    return 0;
+    tlb_entry = (tlb *)malloc(sizeof(vpn_addr * phys_addr));    
+    
+    return 0;
 
 }
 
@@ -99,6 +101,9 @@ check_TLB(void *va) {
     // need to add tlb miss and hit in this method.
     pte_t *ret_phys_addr = NULL;
     tlb_entry *node = tlb_list->head;
+    int found = 0;
+
+    //might need to change this condition and simply add the tlb_worker to list.
     if(tlb_list = NULL) {
         return NULL;
     }
@@ -109,8 +114,13 @@ check_TLB(void *va) {
         if(va = curr->virt_addr) 
         {
             ret_phys_addr = curr->phys_addr;
+            found = 1;
         }
         curr = curr->next;
+    }
+    if(found == 0) {
+        ret_phys_addr = translate(va);
+        add_TLB(va, ret_phys_addr);
     }
     return ret_phys_addr;
 
@@ -480,11 +490,9 @@ queue *enqueue(queue *tlb_list, tlb_worker *worker_entry) {
     }
     // size will be important to check how big the tlb is
     // if the tlb will be greater than 512 then we need to evict
-
-
-
     return tlb_list;
 }
+
 
 int tlb_lock() {
 
