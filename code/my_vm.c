@@ -7,6 +7,8 @@ mpnode_t *mp_list = NULL;
 bitmap_t *phys_bitmap = NULL, *virt_bitmap = NULL;
 
 int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
+tlb_store = NULL;
+queue *tlb_list = NULL;
 
 /*
 Function responsible for allocating and setting your physical memory 
@@ -48,7 +50,8 @@ int set_physical_mem() {
     virt_bitmap->bitmap = (unsigned char *)malloc(virt_bitmap->map_length);
     if ( virt_bitmap->bitmap == NULL ) return -1;
 
-    return 0;
+    tlb_list = (queue *)malloc(sizeof(TLB_ENTRIES));
+    tlb_entry = (tlb *)malloc(sizeof(vpn_addr * phys_addr));    return 0;
 
 }
 
@@ -60,9 +63,26 @@ int set_physical_mem() {
 int
 add_TLB(void *va, void *pa)
 {
-
+    
     /*Part 2 HINT: Add a virtual to physical page translation to the TLB */
-
+    tlb_lock();
+    tlb_worker *worker_entry = (tlb_worker *)malloc(sizeof(tlb_worker));
+    tlb *new_node = (tlb *)malloc(sizeof(tlb));
+    worker_entry->tlb = new_node;
+    new_node->virt_addr = va;
+    new_node->phys_addr = pa;
+    if(tlb_list == NULL){
+        tlb_list->head = tlb_worker;
+    }
+    if(tlb_list->size == 512) {
+        evict(tlb_list, worker_entry);
+    }
+    else {
+        enqueue(tlb_list, worker_entry);
+    }
+    // when adding a tlb and updating the page table we need to lock the tlb first
+    // then unlock to let the thread properly execute without issue
+    tlb_unlock()
     return -1;
 }
 
@@ -76,8 +96,23 @@ pte_t *
 check_TLB(void *va) {
 
     /* Part 2: TLB lookup code here */
-
-
+    // need to add tlb miss and hit in this method.
+    pte_t *ret_phys_addr = NULL;
+    tlb_entry *node = tlb_list->head;
+    if(tlb_list = NULL) {
+        return NULL;
+    }
+    // we want to check the list of tlb nodes if there is one that matches. 
+    // if no match is found we need to check the main page table for an entry.
+    // if it is found in the table, we take that entry and place it in the tlb at the head of the list.
+    while(curr != NULL){
+        if(va = curr->virt_addr) 
+        {
+            ret_phys_addr = curr->phys_addr;
+        }
+        curr = curr->next;
+    }
+    return ret_phys_addr;
 
 /*This function should return a pte_t pointer*/
 }
@@ -88,13 +123,11 @@ check_TLB(void *va) {
 * Feel free to extend the function arguments or return type.
 */
 void
-print_TLB_missrate()
+print_TLB_missrate(int hits, int misses)
 {
     double miss_rate = 0;	
 
     /*Part 2 Code here to calculate and print the TLB miss rate*/
-
-
 
 
     fprintf(stderr, "TLB miss rate %lf \n", miss_rate);
@@ -423,6 +456,43 @@ void get_value(void *va, void *val, int size) {
 
 }
 
+// evict the last tlb_worker node in the queue 
+queue *evict(queue *tlb_list, tlb_worker *worker_entry) {
+    *worker_entry = (tlb_worker *)malloc(sizeof(tlb_worker));
+    worker_entry->next = tlb_list->head;
+    tlb_list->head = worker_entry;
+    tlb_list->tail = tlb_list->tail->prev;
+    return tlb_list;
+}
+
+//regular enqueue function
+queue *enqueue(queue *tlb_list, tlb_worker *worker_entry) {
+    worker_entry = (tlb_worker *)malloc(sizeof(tlb_worker));
+    worker_entry->next = NULL;
+    if(tlb_list->head == NULL) {
+        tlb_list->head = worker_entry;
+        tlb_list->tail = worker_entry;
+    } else {
+        worker_entry->next = tlb_list->head;
+        tlb_list->head = worker_entry;
+        tlb_list->size += 1;
+        worker_entry->index = size;
+    }
+    // size will be important to check how big the tlb is
+    // if the tlb will be greater than 512 then we need to evict
+
+
+
+    return tlb_list;
+}
+
+int tlb_lock() {
+
+}
+
+int tlb_unlock() {
+
+}
 
 
 /*
