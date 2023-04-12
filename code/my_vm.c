@@ -10,6 +10,9 @@ int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
 tlb_store = NULL;
 queue *tlb_list = NULL;
 
+int hits = 0;
+int misses = 0;
+
 /*
 Function responsible for allocating and setting your physical memory 
 */
@@ -70,9 +73,11 @@ add_TLB(void *va, void *pa)
     tlb_lock();
     tlb_worker *worker_entry = (tlb_worker *)malloc(sizeof(tlb_worker));
     tlb *new_node = (tlb *)malloc(sizeof(tlb));
-    worker_entry->tlb = new_node;
+
     new_node->virt_addr = va;
     new_node->phys_addr = pa;
+    worker_entry->tlb = new_node;
+
     if(tlb_list == NULL){
         tlb_list->head = tlb_worker;
     }
@@ -115,12 +120,21 @@ check_TLB(void *va) {
         {
             ret_phys_addr = curr->phys_addr;
             found = 1;
+            hits += 1;
+        }
+        else {
+            misses += 1;
+            print_TLB_missrate(hits, misses);
         }
         curr = curr->next;
     }
     if(found == 0) {
+        //if found = 0. then we traverse the main page table.
         ret_phys_addr = translate(va);
-        add_TLB(va, ret_phys_addr);
+        // check if page_map is equal to -1, if so new entry added to 
+        if(page_map(va, ret_phys_addr) == -1) {
+            add_TLB(va, ret_phys_addr);
+        }        
     }
     return ret_phys_addr;
 
@@ -138,7 +152,7 @@ print_TLB_missrate(int hits, int misses)
     double miss_rate = 0;	
 
     /*Part 2 Code here to calculate and print the TLB miss rate*/
-
+    miss_rate = (hits/(hits+misses));
 
     fprintf(stderr, "TLB miss rate %lf \n", miss_rate);
 }
