@@ -16,6 +16,8 @@ int set_physical_mem() {
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
 
+    void *ptr = malloc(MEMSIZE);
+
     pgdir = (pde_t *)malloc(MEMSIZE);
     if ( pgdir == NULL ) return -1;
 
