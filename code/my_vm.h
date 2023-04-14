@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
 #include <string.h>
 
 //Assume the address space is 32 bits, so the max memory size is 4GB
@@ -12,7 +11,7 @@
 //Add any important includes here which you may need
 
 #define PGSIZE 4096
-
+#define BITS_FOR_OFFSET (log2(PGSIZE))
 
 // Maximum size of virtual memory
 #define MAX_MEMSIZE 4ULL*1024*1024*1024
@@ -42,24 +41,28 @@ struct tlb {
     * Think about the size of each TLB entry that performs virtual to physical
     * address translation.
     */
+    void *phys_addr = NULL;
+    void *virt_addr = NULL;
+    char *lock;
 
 };
 struct tlb tlb_store;
 
-typedef struct bitmap{
+ 
+typedef struct tlb_worker {
+    tlb *tlb_store;
+    struct *tlb_worker next;
+    //use prev and index to check whenever we have to do an eviction if the tlb entry is at capactity.
+    struct *tlb_worker prev;
+    int index;
+} tlb_worker;
 
-    unsigned char *bitmap;
-    unsigned int map_length, map_size;
+typedef struct queue {
+    struct queue *head;
+    struct queue *tail;
+    int size = 0;
+}queue;
 
-}bitmap_t;
-
-typedef struct mpnode {
-
-    struct mbnode *next;
-    unsigned long start_addr;
-    unsigned int num_pages;
-
-} mpnode_t;
 
 int set_physical_mem();
 unsigned long translate(unsigned long va);
