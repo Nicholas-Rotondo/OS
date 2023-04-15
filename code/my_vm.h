@@ -41,11 +41,13 @@ struct tlb {
     * Think about the size of each TLB entry that performs virtual to physical
     * address translation.
     */
+
     void *phys_addr = NULL;
     void *virt_addr = NULL;
     char *lock;
 
 };
+
 struct tlb tlb_store;
 
  
