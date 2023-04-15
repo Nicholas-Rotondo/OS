@@ -41,30 +41,10 @@ struct tlb {
     * Think about the size of each TLB entry that performs virtual to physical
     * address translation.
     */
-
     void *phys_addr = NULL;
     void *virt_addr = NULL;
     unsigned long tag = virt_addr/PGSIZE;
-    char *lock;
-
-};
-
-struct tlb tlb_store;
-
- 
-typedef struct tlb_worker {
-    tlb *tlb_store;
-    struct *tlb_worker next;
-    //use prev and index to check whenever we have to do an eviction if the tlb entry is at capactity.
-    struct *tlb_worker prev;
-    int index;
-} tlb_worker;
-
-typedef struct queue {
-    struct queue *head;
-    struct queue *tail;
-    int size = 0;
-}queue;
+}tlb;
 
 typedef struct bitmap{
 

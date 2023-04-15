@@ -8,14 +8,13 @@ bitmap_t *phys_bitmap = NULL, *virt_bitmap = NULL;
 
 int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
 tlb_store = NULL;
-queue *tlb_list = NULL;
 
 int hits = 0;
 int misses = 0;
 
 int eviction_count = 0;
 
-tlb_arr = (tlb * )malloc(sizeof(tlb * TLB_ENTRIES));
+tlb *tlb_arr = (tlb * )malloc(sizeof(tlb * TLB_ENTRIES));
 if(tlb_arr == NULL) {
     fprintf(stderr, "Memory allocation failed");
     return 1;
@@ -74,7 +73,6 @@ int set_physical_mem() {
 int
 add_TLB(void *va, void *pa)
 {
-    
     /*Part 2 HINT: Add a virtual to physical page translation to the TLB */
     // we need to find a way to store the age of a tlb
     // meaning, it is important to remove the oldest TLB in the event of an eviction.
@@ -84,7 +82,6 @@ add_TLB(void *va, void *pa)
         fprintf(stderr, "Memory allocation failed");
         return 1;
     }  
-    tlb_store->index = -1;
     tlb_store->virt_addr = va;
     tlb_store->phys_addr = pa;
 
