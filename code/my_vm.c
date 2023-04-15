@@ -7,14 +7,17 @@ mpnode_t *mp_list = NULL;
 bitmap_t *phys_bitmap = NULL, *virt_bitmap = NULL;
 
 int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
-tlb_store = NULL;
 
 int hits = 0;
 int misses = 0;
 
 int eviction_count = 0;
+int check_occupancy = 0;
 
-tlb *tlb_arr = (tlb * )malloc(sizeof(tlb * TLB_ENTRIES));
+
+// this seems okay to place here, just need to figure out
+// where is the best location to free.
+tlb_t *tlb_arr = (tlb_t * )malloc(sizeof(tlb_t * TLB_ENTRIES));
 if(tlb_arr == NULL) {
     fprintf(stderr, "Memory allocation failed");
     return 1;
@@ -59,7 +62,6 @@ int set_physical_mem() {
     virt_bitmap->map_length = virt_bitmap->map_size/8; 
     virt_bitmap->bitmap = (unsigned char *)malloc(virt_bitmap->map_length);
     if ( virt_bitmap->bitmap == NULL ) return -1;
-
     
     return 0;
 
@@ -77,28 +79,44 @@ add_TLB(void *va, void *pa)
     // we need to find a way to store the age of a tlb
     // meaning, it is important to remove the oldest TLB in the event of an eviction.
     // for now just keep this simple implementation and add donce we have an idea
-    tlb_store = (tlb *)malloc(sizeof(tlb)); 
-    if(tlb_store == NULL) {
+    tlb_t tlb = (tlb_t *)malloc(sizeof(tlb_t)); 
+    if(tlb == NULL) {
         fprintf(stderr, "Memory allocation failed");
         return 1;
     }  
-    tlb_store->virt_addr = va;
-    tlb_store->phys_addr = pa;
 
     int i;
+
+    tlb->virt_addr = va;
+    tlb->phys_addr = pa;
 
     for(i = 0; i < TLB_ENTRIES; i++) {
         if(tlb_arr[0] == NULL) {
             tlb_arr[0] = tlb_store;
+            check_occupancy += 1;
+        }
+        if(eviction_count == TLB_ENTRIES) {
+            eviction_count = 0;
+        }
+        if(check_occupancy == TLB_ENTRIES) {
+            check_occupancy = 0;
+            tlb_arr[eviction_count] = NULL;
+            tlb_arr[eviction_count] = tlb;
+            eviction_count += 1;
         }
         if(tlb_arr[0] != NULL) {
             //check the array and see if there is an open slot
             if(tlb_arr[i] == NULL) {
                 tlb_arr[i] = tlb_store;
+                check_occupancy += 1;
             }
         }
+        // we can keep adding TLB entries until we have hit occupancy limit.
+        // might want to add this after first conditional
+
     }
 
+    free(tlb);
     return 0;
 }
 
@@ -114,8 +132,8 @@ check_TLB(void *va) {
 
     /* Part 2: TLB lookup code here */
     pte *ret_phys_addr = NULL;
-    tlb *tlb_store = malloc(sizeof(tlb));
-    if(tlb_store == NULL) {
+    tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t));
+    if(tlb == NULL) {
         fprintf(stderr, "Memory allocation failed");
         return 1;
     } 
@@ -133,7 +151,7 @@ check_TLB(void *va) {
         return NULL;
     }
 
-    free(tlb_store);
+    free(tlb);
     return ret_phys_addr;
 
 /*This function should return a pte_t pointer*/
