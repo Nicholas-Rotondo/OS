@@ -21,12 +21,8 @@ int set_physical_mem() {
     //Allocate physical memory using mmap or malloc; this is the total size of
     //your memory you are simulating
 
-    void *ptr = malloc(MEMSIZE);
-
-    pgdir = (pde_t *)malloc(MEMSIZE);
+    pgdir = (pde_t *)calloc(MEMSIZE, 1);
     if ( pgdir == NULL ) return -1;
-
-    initialize_page_directory();
 
     start_phys_mem = (unsigned long) pgdir;
 
@@ -41,15 +37,17 @@ int set_physical_mem() {
     //HINT: Also calculate the number of physical and virtual pages and allocate
     //virtual and physical bitmaps and initialize them
 
-    phys_bitmap = (bitmap_t *)malloc(sizeof(bitmap_t));
+    phys_bitmap = (bitmap_t *)calloc(sizeof(bitmap_t));
     if ( phys_bitmap == NULL ) return -1;
+
     phys_bitmap->map_size = NUM_PAGES;
     phys_bitmap->map_length = NUM_PAGES/8;
     phys_bitmap->bitmap = (unsigned char *)malloc(phys_bitmap->map_length);
     if ( phys_bitmap->bitmap == NULL ) return -1;
 
-    virt_bitmap = (bitmap_t *)malloc(sizeof(bitmap_t));
+    virt_bitmap = (bitmap_t *)calloc(sizeof(bitmap_t));
     if ( virt_bitmap == NULL ) return -1;
+
     virt_bitmap->map_size = (PGSIZE/4) * exp_2(ptbits);
     virt_bitmap->map_length = virt_bitmap->map_size/8; 
     virt_bitmap->bitmap = (unsigned char *)malloc(virt_bitmap->map_length);
@@ -584,12 +582,6 @@ int get_bitmap(bitmap_t *bitmap, unsigned long addr){
     unsigned char map = 1 << bitmap_offset;
 
     return (map &= bitmap->bitmap[bitmap_index]) >> bitmap_offset;
-
-}
-
-void initialize_page_directory() {
-
-    for ( int i = 0; i < PTE_PER_PAGE; i++ ) pgdir[i] = 0;
 
 }
 
