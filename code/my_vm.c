@@ -83,9 +83,11 @@ add_TLB(void *va, void *pa)
     if(tlb_list == NULL){
         tlb_list->head = tlb_worker;
     }
+    
     if(tlb_list->size == 512) {
         evict(tlb_list, worker_entry);
     }
+
     else {
         enqueue(tlb_list, worker_entry);
     }
@@ -360,7 +362,10 @@ void *t_malloc(unsigned int num_bytes) {
     int num_pages = (num_bytes+PGSIZE-1)/PGSIZE;
 
     unsigned long *pfns = get_next_avail(num_pages);
+    if ( !pfns ) return NULL;
+
     unsigned long vpn = get_next_vpn(num_pages);
+    if ( vpn == 1 ) return NULL;
 
     for ( int i = 0; i < num_pages; i++) {
         if ( page_map(vpn + (PGSIZE*i), pfns[i]) == -1 ) return NULL;
