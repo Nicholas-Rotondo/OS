@@ -17,7 +17,7 @@ int check_occupancy = 0;
 
 // this seems okay to place here, just need to figure out
 // where is the best location to free.
-tlb_t *tlb_arr = (tlb_t * )malloc(sizeof(tlb_t * TLB_ENTRIES));
+tlb_t *tlb_arr = (tlb_t *)malloc(sizeof(tlb_t * TLB_ENTRIES));
 if(tlb_arr == NULL) {
     fprintf(stderr, "Memory allocation failed");
     return 1;
@@ -73,13 +73,13 @@ int set_physical_mem() {
 * Feel free to extend the function arguments or return type.
 */
 int
-add_TLB(void *va, void *pa)
+add_TLB(unsigned long *va, unsigned long *pa)
 {
     /*Part 2 HINT: Add a virtual to physical page translation to the TLB */
     // we need to find a way to store the age of a tlb
     // meaning, it is important to remove the oldest TLB in the event of an eviction.
     // for now just keep this simple implementation and add donce we have an idea
-    tlb_t tlb = (tlb_t *)malloc(sizeof(tlb_t)); 
+    tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t)); 
     if(tlb == NULL) {
         fprintf(stderr, "Memory allocation failed");
         return 1;
@@ -92,7 +92,7 @@ add_TLB(void *va, void *pa)
 
     for(i = 0; i < TLB_ENTRIES; i++) {
         if(tlb_arr[0] == NULL) {
-            tlb_arr[0] = tlb_store;
+            tlb_arr[0] = tlb;
             check_occupancy += 1;
         }
         if(eviction_count == TLB_ENTRIES) {
@@ -111,11 +111,7 @@ add_TLB(void *va, void *pa)
                 check_occupancy += 1;
             }
         }
-        // we can keep adding TLB entries until we have hit occupancy limit.
-        // might want to add this after first conditional
-
     }
-
     free(tlb);
     return 0;
 }
@@ -126,12 +122,12 @@ add_TLB(void *va, void *pa)
 * Returns the physical page address.
 * Feel free to extend this function and change the return type.
 */
-*/
 pte_t *
-check_TLB(void *va) {
+check_TLB(unsigned long *va) {
 
     /* Part 2: TLB lookup code here */
-    pte *ret_phys_addr = NULL;
+
+    pte_t *ret_phys_addr = NULL;
     tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t));
     if(tlb == NULL) {
         fprintf(stderr, "Memory allocation failed");
@@ -189,6 +185,12 @@ unsigned long translate(unsigned long va) {
     * translation exists, then you can return physical address from the TLB.
     */
 
+    // uncomment this once paging works.
+    // pte_t *phys_addr = check_TLB(va);
+    // if(phys_addr != NULL) {
+    //     return 1;
+    // }
+
     unsigned long offset = va & offmask;
     unsigned long pt_index = (va & ptmask) >> offset;
     unsigned long pd_index = ((va & pdmask) >> ptbits) >> offset;
@@ -201,7 +203,6 @@ unsigned long translate(unsigned long va) {
 
     if ( pfn == 0 ) return 0;
     else return ( pfn << offbits ) | offset;
-
 }
 
 
@@ -232,6 +233,7 @@ int page_map(unsigned long va, unsigned long pa) {
 
     if ( ! pgtable[pt_index] ) {
         pgtable[pt_index] = pa;
+        //add_TLB(va, pa);
     } else {
         if ( pa == 0 ) {
             pgtable[pt_index] = pa;
