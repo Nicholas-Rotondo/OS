@@ -44,6 +44,7 @@ struct tlb {
 
     void *phys_addr = NULL;
     void *virt_addr = NULL;
+    unsigned long tag = virt_addr/PGSIZE;
     char *lock;
 
 };

@@ -13,6 +13,14 @@ queue *tlb_list = NULL;
 int hits = 0;
 int misses = 0;
 
+int eviction_count = 0;
+
+tlb_arr = (tlb * )malloc(sizeof(tlb * TLB_ENTRIES));
+if(tlb_arr == NULL) {
+    fprintf(stderr, "Memory allocation failed");
+    return 1;
+} 
+
 /*
 Function responsible for allocating and setting your physical memory 
 */
@@ -53,8 +61,6 @@ int set_physical_mem() {
     virt_bitmap->bitmap = (unsigned char *)malloc(virt_bitmap->map_length);
     if ( virt_bitmap->bitmap == NULL ) return -1;
 
-    tlb_list = (queue *)malloc(sizeof(TLB_ENTRIES));
-    tlb_entry = (tlb *)malloc(sizeof(vpn_addr * phys_addr));    
     
     return 0;
 
@@ -70,29 +76,33 @@ add_TLB(void *va, void *pa)
 {
     
     /*Part 2 HINT: Add a virtual to physical page translation to the TLB */
-    tlb_lock();
-    tlb_worker *worker_entry = (tlb_worker *)malloc(sizeof(tlb_worker));
-    tlb *new_node = (tlb *)malloc(sizeof(tlb));
+    // we need to find a way to store the age of a tlb
+    // meaning, it is important to remove the oldest TLB in the event of an eviction.
+    // for now just keep this simple implementation and add donce we have an idea
+    tlb_store = (tlb *)malloc(sizeof(tlb)); 
+    if(tlb_store == NULL) {
+        fprintf(stderr, "Memory allocation failed");
+        return 1;
+    }  
+    tlb_store->index = -1;
+    tlb_store->virt_addr = va;
+    tlb_store->phys_addr = pa;
 
-    new_node->virt_addr = va;
-    new_node->phys_addr = pa;
-    worker_entry->tlb = new_node;
+    int i;
 
-    if(tlb_list == NULL){
-        tlb_list->head = tlb_worker;
-    }
-    
-    if(tlb_list->size == 512) {
-        evict(tlb_list, worker_entry);
+    for(i = 0; i < TLB_ENTRIES; i++) {
+        if(tlb_arr[0] == NULL) {
+            tlb_arr[0] = tlb_store;
+        }
+        if(tlb_arr[0] != NULL) {
+            //check the array and see if there is an open slot
+            if(tlb_arr[i] == NULL) {
+                tlb_arr[i] = tlb_store;
+            }
+        }
     }
 
-    else {
-        enqueue(tlb_list, worker_entry);
-    }
-    // when adding a tlb and updating the page table we need to lock the tlb first
-    // then unlock to let the thread properly execute without issue
-    tlb_unlock()
-    return -1;
+    return 0;
 }
 
 
@@ -101,47 +111,37 @@ add_TLB(void *va, void *pa)
 * Returns the physical page address.
 * Feel free to extend this function and change the return type.
 */
+*/
 pte_t *
 check_TLB(void *va) {
 
     /* Part 2: TLB lookup code here */
-    // need to add tlb miss and hit in this method.
-    pte_t *ret_phys_addr = NULL;
-    tlb_entry *node = tlb_list->head;
-    int found = 0;
+    pte *ret_phys_addr = NULL;
+    tlb *tlb_store = malloc(sizeof(tlb));
+    if(tlb_store == NULL) {
+        fprintf(stderr, "Memory allocation failed");
+        return 1;
+    } 
+    
+    unsigned long vpn = (unsigned long)va/PGSIZE;
 
-    //might need to change this condition and simply add the tlb_worker to list.
-    if(tlb_list = NULL) {
+    if(vpn == tlb_arr[vpn%TLB_ENTRIES]->tag) {
+        ret_phys_addr = tlb_store->phys_addr;
+        hits += 1;
+    }
+    else {
+        misses += 1;
+        // we return NULL here so we can check this in our translate function.
+        // maybe we just do the actual translation here?  
         return NULL;
     }
-    // we want to check the list of tlb nodes if there is one that matches. 
-    // if no match is found we need to check the main page table for an entry.
-    // if it is found in the table, we take that entry and place it in the tlb at the head of the list.
-    while(curr != NULL){
-        if(va = curr->virt_addr) 
-        {
-            ret_phys_addr = curr->phys_addr;
-            found = 1;
-            hits += 1;
-        }
-        else {
-            misses += 1;
-            print_TLB_missrate(hits, misses);
-        }
-        curr = curr->next;
-    }
-    if(found == 0) {
-        //if found = 0. then we traverse the main page table.
-        ret_phys_addr = translate(va);
-        // check if page_map is equal to -1, if so new entry added to 
-        if(page_map(va, ret_phys_addr) == -1) {
-            add_TLB(va, ret_phys_addr);
-        }        
-    }
+
+    free(tlb_store);
     return ret_phys_addr;
 
 /*This function should return a pte_t pointer*/
 }
+
 
 
 /*
@@ -482,42 +482,6 @@ void get_value(void *va, void *val, int size) {
 
    }
 
-
-}
-
-// evict the last tlb_worker node in the queue 
-queue *evict(queue *tlb_list, tlb_worker *worker_entry) {
-    *worker_entry = (tlb_worker *)malloc(sizeof(tlb_worker));
-    worker_entry->next = tlb_list->head;
-    tlb_list->head = worker_entry;
-    tlb_list->tail = tlb_list->tail->prev;
-    return tlb_list;
-}
-
-//regular enqueue function
-queue *enqueue(queue *tlb_list, tlb_worker *worker_entry) {
-    worker_entry = (tlb_worker *)malloc(sizeof(tlb_worker));
-    worker_entry->next = NULL;
-    if(tlb_list->head == NULL) {
-        tlb_list->head = worker_entry;
-        tlb_list->tail = worker_entry;
-    } else {
-        worker_entry->next = tlb_list->head;
-        tlb_list->head = worker_entry;
-        tlb_list->size += 1;
-        worker_entry->index = size;
-    }
-    // size will be important to check how big the tlb is
-    // if the tlb will be greater than 512 then we need to evict
-    return tlb_list;
-}
-
-
-int tlb_lock() {
-
-}
-
-int tlb_unlock() {
 
 }
 
