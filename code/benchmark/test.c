@@ -62,6 +62,8 @@ int main() {
     t_free(b, ARRAY_SIZE);
     t_free(c, ARRAY_SIZE);
 
+    print_TLB_missrate();
+
     printf("Checking if allocations were freed!\n");
     a = t_malloc(ARRAY_SIZE);
     if ((int)a == old_a)
