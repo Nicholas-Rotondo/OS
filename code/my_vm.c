@@ -91,12 +91,9 @@ add_TLB(unsigned long va, unsigned long pa)
     fprintf(stderr, "add_TLB() called to map virtual address %lu to physical address %lu\n", va, pa);
 
     unsigned long vpn = va >> offbits;
-    unsigned long pfn = pa >> offbits;
 
     tlb_arr[vpn % TLB_ENTRIES].vpn = vpn;
-    tlb_arr[vpn % TLB_ENTRIES].pfn = pfn;
-
-    fprintf(stderr, "add_TLB(): \tUpdated TLB at index %ld to have vpn %lu and pfn %lu\n", vpn % TLB_ENTRIES, tlb_arr[vpn % TLB_ENTRIES].vpn, tlb_arr[vpn % TLB_ENTRIES].pfn);
+    tlb_arr[vpn % TLB_ENTRIES].pa = pa;
 
     misses++;
 
@@ -114,18 +111,13 @@ unsigned long check_TLB(unsigned long va) {
 
     // Part 2: TLB lookup code here 
 
-    fprintf(stderr, "check_TLB() called to search for the pfn for virtual address %lu\n", va);
-
-    unsigned long vpn = (unsigned long) va >> offbits;
+    unsigned long vpn = va >> offbits;
+    unsigned long offset = va & offmask;
 
     if ( vpn == tlb_arr[vpn % TLB_ENTRIES].vpn ) {
-        fprintf(stderr, "check_TLB(): \tMatched vpn %lu to pfn %lu at index %ld\n", tlb_arr[vpn % TLB_ENTRIES].vpn, tlb_arr[vpn % TLB_ENTRIES].pfn, vpn % TLB_ENTRIES);
         hits++;
-        return tlb_arr[vpn % TLB_ENTRIES].pfn << offbits;
-    } else {
-        fprintf(stderr, "check_TLB(): \tTLB miss occurred searching for vpn %lu, as TLB entry at index %ld has vpn %lu\n", vpn % TLB_ENTRIES, vpn, tlb_arr[vpn % TLB_ENTRIES].vpn);
-        return 0;
-    }
+        return tlb_arr[vpn % TLB_ENTRIES].pa;
+    } else return 0;
     //This function should return a pte_t pointer
 }
 
@@ -163,8 +155,8 @@ unsigned long translate(unsigned long va) {
     unsigned long offset = va & offmask;
 
     unsigned long pfn = check_TLB(va);
-    if( pfn ) return pfn | offset;
-    
+    if( pfn ) return pfn + offset;
+
     unsigned long pt_index = (va & ptmask) >> offbits;
     unsigned long pd_index = ((va & pdmask) >> ptbits) >> offbits;
 
@@ -189,7 +181,7 @@ unsigned long translate(unsigned long va) {
     else {
         fprintf(stderr, "translate(): \t\tPage table indexed: Translated virtual address %lu to physical address %lu with physical frame number %lu\n", va, pfn | offset, pfn);
         add_TLB(va, pfn);
-        return  pfn | offset;
+        return  pfn + offset;
     }
 }
 
@@ -533,7 +525,7 @@ void t_free(void *va, int size) {
     fprintf(stderr, "t_free(): \tTranslating virtual addresses to physical addresses:\n");
    for ( int i = 0; i < num_pages; i++ ) {
         unsigned long pa = translate(virt_addr + (i*PGSIZE));
-        fprintf(stderr, "t_free(): \t\tTranslated virtual address %lu to physical address %lu\n", virt_addr + (i*PGSIZE), pa);
+        fprintf(stderr, "t_free(): \t\tTranslated virtual address %lu to physical address %lu, will search in bitmap for %lu\n", virt_addr + (i*PGSIZE), pa, pa - start_phys_mem);
         set_bitmap(phys_bitmap, pa - start_phys_mem, 0);     // Set all physical pages as free in physical bitmap
    }
 
@@ -545,7 +537,20 @@ void t_free(void *va, int size) {
         if ( check_TLB(virt_addr + (i*PGSIZE)) ) add_TLB(virt_addr + (i*PGSIZE), 0);
    }
 
-   
+   unsigned long pd_index = ((virt_addr & pdmask) >> ptbits) >> offbits;
+
+    fprintf(stderr, "t_free(): \tChecking to see if page table at page directory index %lu can be freed\n", pd_index);
+
+   if ( pt_empty(pd_index) ) {
+        fprintf(stderr, "t_free(): \t\tPage table can be freed\n");
+        int pages_for_pagetable = (exp_2(ptbits)+(PGSIZE/4)-1)/(PGSIZE/4);
+        for ( int i = 0; i < pages_for_pagetable; i++ ) {
+            set_bitmap(phys_bitmap, pgdir[pd_index] + (i*PGSIZE) - start_phys_mem, 0);
+        }
+        pgdir[pd_index] = 0;
+   } else {
+        fprintf(stderr, "t_free(): \t\tPage table cannot be freed\n");
+   }
 
     __atomic_clear(&lock, __ATOMIC_SEQ_CST);
 
@@ -683,8 +688,13 @@ void set_bitmap(bitmap_t *bitmap, unsigned long addr, int value){
     
     addr = addr >> offbits;
 
-    int bitmap_index = addr/8;
-    int bitmap_offset = addr%8;
+    unsigned long bitmap_index = addr/8;
+    unsigned long bitmap_offset = addr%8;
+
+    if ( value == 0 ) {
+        fprintf(stderr, "set_bitmap: \tShifted Address: %lu | Index: %lu | Offset: %lu\n", addr, bitmap_index, bitmap_offset);
+    }
+
     if ( bitmap_index >= bitmap->map_length ) return;
 
     unsigned char map = 1 << bitmap_offset;
@@ -705,6 +715,48 @@ int get_bitmap(bitmap_t *bitmap, unsigned long addr){
     unsigned char map = 1 << bitmap_offset;
 
     return (map &= bitmap->bitmap[bitmap_index]) >> bitmap_offset;
+
+}
+
+int pt_empty(unsigned long pd_index){
+
+    int pages_for_pagetable = (exp_2(ptbits)+(PGSIZE/4)-1)/(PGSIZE/4);
+    unsigned long start_virt_addr = pd_index << (ptbits + offbits);
+    
+    int i = exp_2(ptbits);
+    unsigned long temp_addr = start_virt_addr;
+
+    while ( i > 0 ){
+        if ( i < 8 ) {
+            if ( get_bitmap(virt_bitmap, temp_addr) != 0) return 0;
+            temp_addr += PGSIZE;
+            i--;
+        } else {
+            if ( temp_addr % (PGSIZE*8) == 0) {
+                if(virt_bitmap->bitmap[temp_addr/(PGSIZE*8)] != 0 ) return 0;
+                temp_addr += (8*PGSIZE);
+                i -= 8;
+            } else {
+                if ( get_bitmap(virt_bitmap, temp_addr) != 0) return 0;
+                temp_addr += PGSIZE;
+                i--;
+            }
+        }
+    }
+
+    return 1;
+
+
+
+}
+
+void print_bitmaps(){
+
+    for ( int i = 1; i < 1024; i++ ) {
+        if (virt_bitmap->bitmap[i] != 0 || phys_bitmap->bitmap[i] != 0) {
+            fprintf(stderr, "Virtual: %x | Physical: %x\n", virt_bitmap->bitmap[i], phys_bitmap->bitmap[i]);
+        }
+    }
 
 }
 

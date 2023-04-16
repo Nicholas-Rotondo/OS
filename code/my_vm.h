@@ -12,7 +12,7 @@
 
 //Add any important includes here which you may need
 
-#define PGSIZE 4096
+#define PGSIZE 65536
 #define BITS_FOR_OFFSET (log2(PGSIZE))
 
 // Maximum size of virtual memory
@@ -43,7 +43,7 @@ typedef struct tlb {
     * Think about the size of each TLB entry that performs virtual to physical
     * address translation.
     */
-    unsigned long pfn;
+    unsigned long pa;
     unsigned long vpn;
 
 }tlb_t;
@@ -81,7 +81,8 @@ void mat_mult(void *mat1, void *mat2, int size, void *answer);
 void print_TLB_missrate();
 void set_bitmap(bitmap_t *bitmap, unsigned long addr, int value);
 int get_bitmap(bitmap_t *bitmap, unsigned long addr);
-void initialize_page_directory();
+int pt_empty(unsigned long pd_index);
+void print_bitmaps();
 int exp_2(int power);
 
 #endif
