@@ -3,7 +3,6 @@
 unsigned long start_phys_mem;
 
 pde_t *pgdir = NULL;
-mpnode_t *mp_list = NULL;
 bitmap_t *phys_bitmap = NULL, *virt_bitmap = NULL;
 
 int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
@@ -13,36 +12,20 @@ int misses = 0;
 
 char lock = 0;
 
-int eviction_count = 0;
-int check_occupancy = 0;
-
-/*
-Function responsible for allocating and setting your physical memory 
-*/
 int set_physical_mem() {
-
-    //Allocate physical memory using mmap or malloc; this is the total size of
-    //your memory you are simulating
-
-    fprintf(stderr, "set_physical_mem() called\n");
 
     pgdir = (pde_t *)calloc(MEMSIZE, 1);
     if ( pgdir == NULL ) return -1;
 
     start_phys_mem = (unsigned long) pgdir;
-    fprintf(stderr, "set_physical_mem(): \tPage directory/Physical memory allocated starting at address %lu\n", start_phys_mem);
 
     offbits = log2(PGSIZE);
     pdbits = (ADDR_BITS - offbits)/2;
     ptbits = ((ADDR_BITS - offbits)%2) ? pdbits + 1 : pdbits;
-    fprintf(stderr, "set_physical_mem(): \tVirtual addresses will be split into %d bits for the page directory index, %d bits for the page table index, and %d bits for the offset\n", pdbits, ptbits, offbits);
 
     offmask = PGSIZE - 1;
     ptmask = (exp_2(ptbits) - 1) << offbits;
     pdmask = ((exp_2(pdbits) - 1) << offbits ) << ptbits;
-
-    //HINT: Also calculate the number of physical and virtual pages and allocate
-    //virtual and physical bitmaps and initialize them
 
     phys_bitmap = (bitmap_t *)malloc(sizeof(bitmap_t));
     if ( phys_bitmap == NULL ) return -1;
@@ -51,7 +34,6 @@ int set_physical_mem() {
     phys_bitmap->map_length = NUM_PAGES/8;
     phys_bitmap->bitmap = (unsigned char *)calloc(phys_bitmap->map_length, sizeof(unsigned char));
     if ( phys_bitmap->bitmap == NULL ) return -1;
-    fprintf(stderr, "set_physical_mem(): \tThe physical bitmap represents %d physical pages using %d indices\n", phys_bitmap->map_size, phys_bitmap->map_length);
 
     virt_bitmap = (bitmap_t *)malloc(sizeof(bitmap_t));
     if ( virt_bitmap == NULL ) return -1;
@@ -60,36 +42,17 @@ int set_physical_mem() {
     virt_bitmap->map_length = virt_bitmap->map_size/8; 
     virt_bitmap->bitmap = (unsigned char *)calloc(virt_bitmap->map_length, sizeof(unsigned char));
     if ( virt_bitmap->bitmap == NULL ) return -1;
-    fprintf(stderr, "set_physical_mem(): \tThe virtual bitmap represents %d virtual pages using %d indices\n", virt_bitmap->map_size, virt_bitmap->map_length);
    
    
-   tlb_arr = (tlb_t *)calloc(TLB_ENTRIES, sizeof(tlb_t));
-    if(tlb_arr == NULL) {
-        fprintf(stderr, "set_physical_mem(): \tMemory allocation failed\n");
-        return -1;
-    }
+    tlb_arr = (tlb_t *)calloc(TLB_ENTRIES, sizeof(tlb_t));
+    if ( tlb_arr == NULL ) return -1;
 
     return 0;
 
 }
 
-
-/*
-* Part 2: Add a virtual to physical page translation to the TLB.
-* Feel free to extend the function arguments or return type.
-*/
-
-
-void
-add_TLB(unsigned long va, unsigned long pa)
-{
-    //Part 2 HINT: Add a virtual to physical page translation to the TLB
-    // we need to find a way to store the age of a tlb
-    // meaning, it is important to remove the oldest TLB in the event of an eviction.
-    // for now just keep this simple implementation and add donce we have an idea
-
-    fprintf(stderr, "add_TLB() called to map virtual address %lu to physical address %lu\n", va, pa);
-
+void add_TLB(unsigned long va, unsigned long pa) {
+    
     unsigned long vpn = va >> offbits;
 
     tlb_arr[vpn % TLB_ENTRIES].vpn = vpn;
@@ -99,17 +62,7 @@ add_TLB(unsigned long va, unsigned long pa)
 
 }   
 
-
-
-/*
-* Part 2: Check TLB for a valid translation.
-* Returns the physical page address.
-* Feel free to extend this function and change the return type.
-*/
-
 unsigned long check_TLB(unsigned long va) {
-
-    // Part 2: TLB lookup code here 
 
     unsigned long vpn = va >> offbits;
     unsigned long offset = va & offmask;
@@ -118,70 +71,38 @@ unsigned long check_TLB(unsigned long va) {
         hits++;
         return tlb_arr[vpn % TLB_ENTRIES].pa;
     } else return 0;
-    //This function should return a pte_t pointer
+
 }
 
-/*
-* Part 2: Print TLB miss rate.
-* Feel free to extend the function arguments or return type.
-*/
+void print_TLB_missrate() {	
 
-void
-print_TLB_missrate()
-{	
-
-    //Part 2 Code here to calculate and print the TLB miss rate
     double miss_rate = ((double)misses)/((double)(hits+misses));
 
-    fprintf(stderr, "TLB miss rate %lf%% from %d misses and %d hits\n", miss_rate*100, misses, hits);
+    fprintf(stderr, "TLB miss rate %lf \n", miss_rate);
 
 }
 
-
-/*
-The function takes a virtual address and page directories starting address and
-performs translation to return the physical address
-*/
 unsigned long translate(unsigned long va) {
-    /* Part 1 HINT: Get the Page directory index (1st level) Then get the
-    * 2nd-level-page table index using the virtual address.  Using the page
-    * directory index and page table index get the physical address.
-    *
-    * Part 2 HINT: Check the TLB before performing the translation. If
-    * translation exists, then you can return physical address from the TLB.
-    */
 
-    // uncomment this once paging works.
     unsigned long offset = va & offmask;
 
-    unsigned long pfn = check_TLB(va);
-    if( pfn ) return pfn + offset;
+    unsigned long pa = check_TLB(va);
+    if( pa ) return pa + offset;
 
     unsigned long pt_index = (va & ptmask) >> offbits;
     unsigned long pd_index = ((va & pdmask) >> ptbits) >> offbits;
 
-    fprintf(stderr, "translate(): \tVirtual address was translated to page directory index %lu, page table index %lu, and offset %lu\n", pd_index, pt_index, offset);
-
-    if ( pd_index >= PGSIZE/4 ) {
-        fprintf(stderr, "translate(): \tPage directory index out of bounds\n");
-        return 0;
-    }
+    if ( pd_index >= PGSIZE/4 ) return 0;
+    
     pte_t *pgtable = (pte_t *)pgdir[pd_index];
-    if ( pgtable == NULL ) {
-        fprintf(stderr, "translate(): \tNo page table found at index %lu\n", pd_index);
-        return 0;
-    }
-    fprintf(stderr, "translate(): \tPage directory indexed: Jumping to page table at physical address %lu\n", pgdir[pd_index]);
-    pfn = pgtable[pt_index];
-
-    if ( pfn == 0 ) {
-        fprintf(stderr, "translate(): \t\tPage table indexed: Translation failed\n");
-        return 0;
-    }
+    if ( pgtable == NULL ) return 0;
+    
+    pa = pgtable[pt_index];
+    
+    if ( pa == 0 ) return 0;
     else {
-        fprintf(stderr, "translate(): \t\tPage table indexed: Translated virtual address %lu to physical address %lu with physical frame number %lu\n", va, pfn | offset, pfn);
-        add_TLB(va, pfn);
-        return  pfn + offset;
+        add_TLB(va, pa);
+        return  pa + offset;
     }
 }
 

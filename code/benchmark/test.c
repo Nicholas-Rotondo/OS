@@ -8,7 +8,7 @@
 
 int main() {
 
-    /*printf("Allocating three arrays of %d bytes\n", ARRAY_SIZE);
+    printf("Allocating three arrays of %d bytes\n", ARRAY_SIZE);
 
     void *a = t_malloc(ARRAY_SIZE);
     int old_a = (int)a;
@@ -70,24 +70,6 @@ int main() {
         printf("free function works\n");
     else
         printf("free function does not work\n");
-
-    print_bitmaps();*/
-
-    void **a[1024];
-
-   for ( int i = 0; i < 1024; i++ ) {
-        a[i] = t_malloc(4096);
-   }
-
-   void *b = t_malloc(4096);
-
-   for ( int i = 0; i < 1024; i++ ) {
-        t_free(a[i], 4096);
-   }
-
-    t_free(b, 4096);
-
-    print_bitmaps();
 
     return 0;
 
