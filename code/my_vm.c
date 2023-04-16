@@ -15,13 +15,6 @@ int eviction_count = 0;
 int check_occupancy = 0;
 
 
-// this seems okay to place here, just need to figure out
-// where is the best location to free.
-tlb_t *tlb_arr = (tlb_t *)malloc(sizeof(tlb_t * TLB_ENTRIES));
-if(tlb_arr == NULL) {
-    fprintf(stderr, "Memory allocation failed");
-    return 1;
-} 
 
 /*
 Function responsible for allocating and setting your physical memory 
@@ -85,7 +78,7 @@ int set_physical_mem() {
 * Feel free to extend the function arguments or return type.
 */
 
-/*
+
 int
 add_TLB(unsigned long *va, unsigned long *pa)
 {
@@ -93,11 +86,7 @@ add_TLB(unsigned long *va, unsigned long *pa)
     // we need to find a way to store the age of a tlb
     // meaning, it is important to remove the oldest TLB in the event of an eviction.
     // for now just keep this simple implementation and add donce we have an idea
-<<<<<<< HEAD
-    tlb_t tlb = malloc(sizeof(tlb_t)); 
-=======
     tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t)); 
->>>>>>> 740d4d784712f14d3f4052af4c71bc0ed5aaa483
     if(tlb == NULL) {
         fprintf(stderr, "Memory allocation failed");
         return 1;
@@ -138,24 +127,20 @@ add_TLB(unsigned long *va, unsigned long *pa)
     return 0;
 }
 
-*/
+
 
 /*
 * Part 2: Check TLB for a valid translation.
 * Returns the physical page address.
 * Feel free to extend this function and change the return type.
+*/
 
 pte_t *
 check_TLB(unsigned long *va) {
 
-<<<<<<< HEAD
-    //Part 2: TLB lookup code here
-    pte *ret_phys_addr = NULL;
-=======
     /* Part 2: TLB lookup code here */
 
     pte_t *ret_phys_addr = NULL;
->>>>>>> 740d4d784712f14d3f4052af4c71bc0ed5aaa483
     tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t));
     if(tlb == NULL) {
         fprintf(stderr, "Memory allocation failed");
@@ -188,6 +173,7 @@ check_TLB(unsigned long *va) {
 /*
 * Part 2: Print TLB miss rate.
 * Feel free to extend the function arguments or return type.
+*/
 
 void
 print_TLB_missrate(int hits, int misses)
@@ -200,7 +186,6 @@ print_TLB_missrate(int hits, int misses)
     fprintf(stderr, "TLB miss rate %lf \n", miss_rate);
 }
 
-*/
 
 /*
 The function takes a virtual address and page directories starting address and
@@ -292,12 +277,7 @@ int page_map(unsigned long va, unsigned long pa) {
 
     if ( ! pgtable[pt_index] ) {
         pgtable[pt_index] = pa;
-<<<<<<< HEAD
         fprintf(stderr, "page_map(): \t\tPage table indexed: Mapped physical address %lu to index %lu in page table\n", pgtable[pt_index], pt_index);
-=======
-        fprintf(stderr, "\t\tPage table indexed: Mapped physical address %lu to index %lu in page table\n", pgtable[pt_index], pt_index);
-        //add_TLB(va, pa);
->>>>>>> 740d4d784712f14d3f4052af4c71bc0ed5aaa483
     } else {
         if ( pa == 0 ) {
             pgtable[pt_index] = pa;
