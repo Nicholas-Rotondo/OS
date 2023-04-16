@@ -11,6 +11,8 @@ int pdbits, pdmask, ptbits, ptmask, offbits, offmask;
 int hits = 0;
 int misses = 0;
 
+char lock = 0;
+
 int eviction_count = 0;
 int check_occupancy = 0;
 
@@ -140,7 +142,7 @@ print_TLB_missrate()
     double miss_rate = ((double)misses)/((double)(hits+misses));
 
     fprintf(stderr, "TLB miss rate %lf%% from %d misses and %d hits\n", miss_rate*100, misses, hits);
-    
+
 }
 
 
@@ -440,11 +442,16 @@ void *t_malloc(unsigned int num_bytes) {
     * HINT: If the physical memory is not yet initialized, then allocate and initialize.
     */
 
+   while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1 ); 
+
     fprintf(stderr, "t_malloc() called requesting %u bytes\n", num_bytes);
 
     if ( pgdir == NULL ) {
         fprintf(stderr, "t_malloc(): \tPage directory has not been allocated: Calling set_phys_mem()\n");
-        if ( set_physical_mem() == -1 ) return NULL;
+        if ( set_physical_mem() == -1 ) {
+            __atomic_clear(&lock, __ATOMIC_SEQ_CST);
+            return NULL;
+        }
         fprintf(stderr, "t_malloc(): \tPage directory has been allocated: Calling set_bitmap()\n");
         set_bitmap(phys_bitmap, start_phys_mem - start_phys_mem, 1);
     }
@@ -460,19 +467,29 @@ void *t_malloc(unsigned int num_bytes) {
 
     fprintf(stderr, "t_malloc(): \tCalling get_next_avail()\n");
     unsigned long *pfns = get_next_avail(num_pages);
-    if ( !pfns ) return NULL;
+    if ( !pfns ) {
+        __atomic_clear(&lock, __ATOMIC_SEQ_CST);
+        return NULL;
+    }
 
     fprintf(stderr, "t_malloc(): \tCalling get_next_vpn()\n");
     unsigned long vpn = get_next_vpn(num_pages);
     fprintf(stderr, "t_malloc(): \tVirtual address received: %lu\n", vpn);
-    if ( vpn == 1 ) return NULL;
-
+    if ( vpn == 1 ) {
+        __atomic_clear(&lock, __ATOMIC_SEQ_CST);
+        return NULL;
+    }
 
     for ( int i = 0; i < num_pages; i++) {
         fprintf(stderr, "t_malloc(): \tCalling page_map() to map virtual address %lu to physical address %lu\n", vpn+(PGSIZE*i), pfns[i]);
-        if ( page_map(vpn + (PGSIZE*i), pfns[i]) == -1 ) return NULL;
+        if ( page_map(vpn + (PGSIZE*i), pfns[i]) == -1 ) {
+            __atomic_clear(&lock, __ATOMIC_SEQ_CST);
+            return NULL;
+        }
         add_TLB(vpn + (PGSIZE*i), pfns[i]);
     }
+
+    __atomic_clear(&lock, __ATOMIC_SEQ_CST);
 
     return (void *) vpn;
 }
@@ -489,12 +506,15 @@ void t_free(void *va, int size) {
     * Part 2: Also, remove the translation from the TLB
     */
 
+   while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) );
+
    fprintf(stderr, "t_free() called on virtual address %lu with size %d\n", (unsigned long)va, size);
 
    unsigned long virt_addr = (unsigned long) va;
 
    if ( virt_addr % PGSIZE != 0 ) {
         fprintf(stderr, "t_free(): \tFree failed: Virtual address lies in the middle of a page\n");
+        __atomic_clear(&lock, __ATOMIC_SEQ_CST);
         return;   // Ensure address to be freed is the start of a page
    }
    
@@ -504,6 +524,7 @@ void t_free(void *va, int size) {
    for ( int i = 0; i < num_pages; i++ ) {
         if ( get_bitmap(virt_bitmap, virt_addr + (i*PGSIZE)) != 1) {
             fprintf(stderr, "t_free(): \tPage with virtual address %lu is not in use: Free failed\n", virt_addr + (i*PGSIZE));
+            __atomic_clear(&lock, __ATOMIC_SEQ_CST);
             return;  // Ensure all pages being freed are currently in use
         }
    }
@@ -524,6 +545,9 @@ void t_free(void *va, int size) {
         if ( check_TLB(virt_addr + (i*PGSIZE)) ) add_TLB(virt_addr + (i*PGSIZE), 0);
    }
 
+   
+
+    __atomic_clear(&lock, __ATOMIC_SEQ_CST);
 
 }
 
@@ -539,6 +563,8 @@ int put_value(void *va, void *val, int size) {
     * than one page. Therefore, you may have to find multiple pages using translate()
     * function.
     */
+
+   while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1 );
 
    fprintf(stderr, "put_value() called to copy %d bits from address %lu to virtual address %lu\n", size, (unsigned long) val, (unsigned long) va);
 
@@ -567,12 +593,17 @@ int put_value(void *va, void *val, int size) {
             val += size;
             size -= size;
             fprintf(stderr, "put_value(): \t\tCopy performed: Virtual address updated to %lu, input address updated to %lu, and size updated to %d\n", virt_addr, (unsigned long) val, size);
+            __atomic_clear(&lock, __ATOMIC_SEQ_CST);
             return 0;
         }
 
    }
 
+    __atomic_clear(&lock, __ATOMIC_SEQ_CST);
+
     /*return -1 if put_value failed and 0 if put is successfull*/
+
+    return -1;
 
 }
 
@@ -583,6 +614,8 @@ void get_value(void *va, void *val, int size) {
     /* HINT: put the values pointed to by "va" inside the physical memory at given
     * "val" address. Assume you can access "val" directly by derefencing them.
     */
+
+   while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1);
 
    unsigned long virt_addr = (unsigned long)va;
 
@@ -603,6 +636,7 @@ void get_value(void *va, void *val, int size) {
             virt_addr += size;
             val += size;
             size -= size;
+            __atomic_clear(&lock, __ATOMIC_SEQ_CST);
             return;
         }
 
