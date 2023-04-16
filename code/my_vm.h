@@ -42,10 +42,9 @@ typedef struct tlb {
     * Think about the size of each TLB entry that performs virtual to physical
     * address translation.
     */
-    void *phys_addr;
-    void *virt_addr;
-    unsigned long tag;
-
+    void *phys_addr = NULL;
+    void *virt_addr = NULL;
+    unsigned long tag = virt_addr/PGSIZE;
 }tlb_t;
 
 typedef struct bitmap{
