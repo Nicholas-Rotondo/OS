@@ -32,12 +32,12 @@ int set_physical_mem() {
     if ( pgdir == NULL ) return -1;
 
     start_phys_mem = (unsigned long) pgdir;
-    fprintf(stderr, "\tPage directory/Physical memory allocated starting at address %lu\n", start_phys_mem);
+    fprintf(stderr, "set_physical_mem(): \tPage directory/Physical memory allocated starting at address %lu\n", start_phys_mem);
 
     offbits = log2(PGSIZE);
     pdbits = (ADDR_BITS - offbits)/2;
     ptbits = ((ADDR_BITS - offbits)%2) ? pdbits + 1 : pdbits;
-    fprintf(stderr, "\tVirtual addresses will be split into %d bits for the page directory index, %d bits for the page table index, and %d bits for the offset\n", pdbits, ptbits, offbits);
+    fprintf(stderr, "set_physical_mem(): \tVirtual addresses will be split into %d bits for the page directory index, %d bits for the page table index, and %d bits for the offset\n", pdbits, ptbits, offbits);
 
     offmask = PGSIZE - 1;
     ptmask = (exp_2(ptbits) - 1) << offbits;
@@ -53,7 +53,7 @@ int set_physical_mem() {
     phys_bitmap->map_length = NUM_PAGES/8;
     phys_bitmap->bitmap = (unsigned char *)calloc(phys_bitmap->map_length, sizeof(unsigned char));
     if ( phys_bitmap->bitmap == NULL ) return -1;
-    fprintf(stderr, "\tThe physical bitmap represents %d physical pages using %d indices\n", phys_bitmap->map_size, phys_bitmap->map_length);
+    fprintf(stderr, "set_physical_mem(): \tThe physical bitmap represents %d physical pages using %d indices\n", phys_bitmap->map_size, phys_bitmap->map_length);
 
     virt_bitmap = (bitmap_t *)malloc(sizeof(bitmap_t));
     if ( virt_bitmap == NULL ) return -1;
@@ -62,14 +62,14 @@ int set_physical_mem() {
     virt_bitmap->map_length = virt_bitmap->map_size/8; 
     virt_bitmap->bitmap = (unsigned char *)calloc(virt_bitmap->map_length, sizeof(unsigned char));
     if ( virt_bitmap->bitmap == NULL ) return -1;
-    fprintf(stderr, "\tThe virtual bitmap represents %d virtual pages using %d indices\n", virt_bitmap->map_size, virt_bitmap->map_length);
+    fprintf(stderr, "set_physical_mem(): \tThe virtual bitmap represents %d virtual pages using %d indices\n", virt_bitmap->map_size, virt_bitmap->map_length);
    
     tlb_t *tlb_arr = (tlb_t * )malloc(sizeof(tlb_t) * TLB_ENTRIES);
     if(tlb_arr == NULL) {
-        fprintf(stderr, "Memory allocation failed");
+        fprintf(stderr, "set_physical_mem(): \tMemory allocation failed\n");
         return 1;
     } 
-    
+
     return 0;
 
 }
@@ -79,14 +79,16 @@ int set_physical_mem() {
 * Part 2: Add a virtual to physical page translation to the TLB.
 * Feel free to extend the function arguments or return type.
 */
+
+/*
 int
 add_TLB(void *va, void *pa)
 {
-    /*Part 2 HINT: Add a virtual to physical page translation to the TLB */
+    //Part 2 HINT: Add a virtual to physical page translation to the TLB
     // we need to find a way to store the age of a tlb
     // meaning, it is important to remove the oldest TLB in the event of an eviction.
     // for now just keep this simple implementation and add donce we have an idea
-    tlb_t tlb = (tlb_t *)malloc(sizeof(tlb_t)); 
+    tlb_t tlb = malloc(sizeof(tlb_t)); 
     if(tlb == NULL) {
         fprintf(stderr, "Memory allocation failed");
         return 1;
@@ -127,16 +129,17 @@ add_TLB(void *va, void *pa)
     return 0;
 }
 
+*/
 
 /*
 * Part 2: Check TLB for a valid translation.
 * Returns the physical page address.
 * Feel free to extend this function and change the return type.
-*/
+
 pte_t *
 check_TLB(void *va) {
 
-    /* Part 2: TLB lookup code here */
+    //Part 2: TLB lookup code here
     pte *ret_phys_addr = NULL;
     tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t));
     if(tlb == NULL) {
@@ -160,27 +163,27 @@ check_TLB(void *va) {
     free(tlb);
     return ret_phys_addr;
 
-/*This function should return a pte_t pointer*/
+//This function should return a pte_t pointer
 }
 
-
+*/
 
 /*
 * Part 2: Print TLB miss rate.
 * Feel free to extend the function arguments or return type.
-*/
+
 void
 print_TLB_missrate(int hits, int misses)
 {
     double miss_rate = 0;	
 
-    /*Part 2 Code here to calculate and print the TLB miss rate*/
+    //Part 2 Code here to calculate and print the TLB miss rate
     miss_rate = (hits/(hits+misses));
 
     fprintf(stderr, "TLB miss rate %lf \n", miss_rate);
 }
 
-
+*/
 
 /*
 The function takes a virtual address and page directories starting address and
@@ -198,30 +201,30 @@ unsigned long translate(unsigned long va) {
     fprintf(stderr, "translate() called on virtual address %lu\n", va);
 
     unsigned long offset = va & offmask;
-    unsigned long pt_index = (va & ptmask) >> offset;
-    unsigned long pd_index = ((va & pdmask) >> ptbits) >> offset;
+    unsigned long pt_index = (va & ptmask) >> offbits;
+    unsigned long pd_index = ((va & pdmask) >> ptbits) >> offbits;
 
-    fprintf(stderr, "\tVirtual address was translated to page directory index %lu, page table index %lu, and offset %lu\n", pd_index, pt_index, offset);
+    fprintf(stderr, "translate(): \tVirtual address was translated to page directory index %lu, page table index %lu, and offset %lu\n", pd_index, pt_index, offset);
 
     if ( pd_index >= PGSIZE/4 ) {
-        fprintf(stderr, "\tPage directory index out of bounds\n");
+        fprintf(stderr, "translate(): \tPage directory index out of bounds\n");
         return 0;
     }
     pte_t *pgtable = (pte_t *)pgdir[pd_index];
     if ( pgtable == NULL ) {
-        fprintf(stderr, "\tNo page table found at index %lu\n", pd_index);
+        fprintf(stderr, "translate(): \tNo page table found at index %lu\n", pd_index);
         return 0;
     }
-    fprintf(stderr, "\tPage directory indexed: Jumping to page table at physical address %lu\n", pgdir[pd_index]);
+    fprintf(stderr, "translate(): \tPage directory indexed: Jumping to page table at physical address %lu\n", pgdir[pd_index]);
     unsigned long pfn = pgtable[pt_index];
 
     if ( pfn == 0 ) {
-        fprintf(stderr, "\t\tPage table indexed: Translation failed\n");
+        fprintf(stderr, "translate(): \t\tPage table indexed: Translation failed\n");
         return 0;
     }
     else {
-        fprintf(stderr, "\t\tPage table indexed: Translated virtual address %lu to physical address %lu with physical frame number %lu\n", va, ( pfn << offbits ) | offset, pfn);
-        return ( pfn << offbits ) | offset;
+        fprintf(stderr, "translate(): \t\tPage table indexed: Translated virtual address %lu to physical address %lu with physical frame number %lu\n", va, pfn | offset, pfn);
+        return  pfn | offset;
     }
 }
 
@@ -241,38 +244,39 @@ int page_map(unsigned long va, unsigned long pa) {
     fprintf(stderr, "page_map() called to map virtual address %lu to physical address %lu\n", va, pa);
 
     unsigned long offset = va & offmask;
-    unsigned long pt_index = (va & ptmask) >> offset;
-    unsigned long pd_index = ((va & pdmask) >> ptbits) >> offset;
+    unsigned long pt_index = (va & ptmask) >> offbits;
+    unsigned long pd_index = ((va & pdmask) >> ptbits) >> offbits;
 
-    fprintf(stderr, "\tVirtual address was translated to page directory index %lu, page table index %lu, and offset %lu\n", pd_index, pt_index, offset);
+    fprintf(stderr, "page_map(): \tVirtual address was translated to page directory index %lu, page table index %lu, and offset %lu\n", pd_index, pt_index, offset);
 
     if ( pd_index >= PGSIZE/4 ) {
-        fprintf(stderr, "\tPage directory index out of bounds\n");
+        fprintf(stderr, "page_map(): \tPage directory index out of bounds\n");
         return -1;
     }
 
     if ( pgdir[pd_index] == 0 ) {
-        fprintf(stderr, "\tNo page table found at index %lu: Calling get_next_cont() to allocate page table\n", pd_index);
-        unsigned long next_page_table = get_next_cont((exp_2(ptbits))/(PGSIZE/4));
+        fprintf(stderr, "page_map(): \tNo page table found at index %lu: Calling get_next_cont() to allocate page table\n", pd_index);
+        int pages_for_pagetable = (exp_2(ptbits)+(PGSIZE/4)-1)/(PGSIZE/4);
+        unsigned long next_page_table = get_next_cont(pages_for_pagetable);
         if ( next_page_table == 0 ) {
-            fprintf(stderr, "\t\tPage table could not be allocated\n");
+            fprintf(stderr, "page_map(): \t\tPage table could not be allocated\n");
             return -1;
         }
-        fprintf(stderr, "\t\tPage table allocated with physical address %lu\n", next_page_table);
+        fprintf(stderr, "page_map(): \t\tPage table allocated with physical address %lu\n", next_page_table);
         pgdir[pd_index] = next_page_table;
     }
 
     pte_t *pgtable = (pte_t *)pgdir[pd_index];
-    fprintf(stderr, "\tPage directory indexed: Jumping to page table at physical address %lu\n", pgdir[pd_index]);
+    fprintf(stderr, "page_map(): \tPage directory indexed: Jumping to page table at physical address %lu\n", pgdir[pd_index]);
 
     if ( ! pgtable[pt_index] ) {
         pgtable[pt_index] = pa;
-        fprintf(stderr, "\t\tPage table indexed: Mapped physical address %lu to index %lu in page table\n", pgtable[pt_index], pt_index);
+        fprintf(stderr, "page_map(): \t\tPage table indexed: Mapped physical address %lu to index %lu in page table\n", pgtable[pt_index], pt_index);
     } else {
         if ( pa == 0 ) {
             pgtable[pt_index] = pa;
         } else {
-            fprintf(stderr, "\t\tPage table indexed: Page map failed, as physical address %lu resides at index %lu in page table\n", pgtable[pd_index], pt_index);
+            fprintf(stderr, "page_map(): \t\tPage table indexed: Page map failed, as physical address %lu resides at index %lu in page table\n", pgtable[pd_index], pt_index);
             return -1;
         }
     }
@@ -295,12 +299,12 @@ unsigned long *get_next_avail(int num_pages) {
 
         if ( phys_bitmap->bitmap[i] == 255 ) {
             page_addr += (PGSIZE * 8);
-            fprintf(stderr, "\tNo physical pages found at index %d | Page address updated to %lu (Offset from start is now %lu)\n", i, page_addr, page_addr-start_phys_mem);
+            fprintf(stderr, "get_next_avail(): \tNo physical pages found at index %d | Page address updated to %lu (Offset from start is now %lu)\n", i, page_addr, page_addr-start_phys_mem);
         }
 
         else {
 
-            fprintf(stderr, "\tPhysical page located within index %d | Bitmap at this index: %x", i, phys_bitmap->bitmap[i]);
+            fprintf(stderr, "get_next_avail(): \tPhysical page located within index %d | Bitmap at this index: %x\n", i, phys_bitmap->bitmap[i]);
 
             unsigned char map = 1;
 
@@ -308,14 +312,14 @@ unsigned long *get_next_avail(int num_pages) {
 
                 if ( ! (phys_bitmap->bitmap[i] & map) ) {
 
-                    fprintf(stderr, "\t\tPhysical page %d found at bit %d with physical address %lu (Offset from start is %lu)\n", num_page + 1, j, page_addr, page_addr-start_phys_mem);
+                    fprintf(stderr, "get_next_avail(): \t\tPhysical page %d found at bit %d with physical address %lu (Offset from start is %lu)\n", num_page + 1, j, page_addr, page_addr-start_phys_mem);
 
                     avail_pages[num_page++] = page_addr;
                     if ( num_page == num_pages ) {
-                        fprintf(stderr, "\t%d physical pages found\n", num_page);
+                        fprintf(stderr, "get_next_avail(): \t%d physical pages found\n", num_page);
                         for ( int i = 0; i < num_pages; i++ ) {
-                            fprintf(stderr, "\t\tPhysical page %d with physical address %lu (Offset from start is %lu)\n", i, avail_pages[i], avail_pages[i]-start_phys_mem);
-                            set_bitmap(phys_bitmap, avail_pages[i], 1);
+                            fprintf(stderr, "get_next_avail(): \t\tPhysical page %d with physical address %lu (Offset from start is %lu)\n", i, avail_pages[i], avail_pages[i]-start_phys_mem);
+                            set_bitmap(phys_bitmap, avail_pages[i] - start_phys_mem, 1);
                         }
                         return avail_pages;
                     }
@@ -325,14 +329,14 @@ unsigned long *get_next_avail(int num_pages) {
                 page_addr += PGSIZE;
                 map <<= 1;
 
-                fprintf(stderr, "\t\tPage address updated to %lu (Offset from start is now %lu)\n", page_addr, page_addr-start_phys_mem);
+                fprintf(stderr, "get_next_avail(): \t\tPage address updated to %lu (Offset from start is now %lu)\n", page_addr, page_addr-start_phys_mem);
 
             }
         } 
 
     }
 
-    fprintf(stderr, "\tCannot find sufficient number of free physical pages\n");
+    fprintf(stderr, "get_next_avail(): \tCannot find sufficient number of free physical pages\n");
 
     return NULL;
 }
@@ -350,13 +354,13 @@ unsigned long get_next_cont(int num_pages) {
 
         if ( phys_bitmap->bitmap[i] == 255 ) {
             page_addr += (PGSIZE*8); 
-            fprintf(stderr, "\tNo physical pages found at index %d | Page address updated to %lu (Offset from start is now %lu)\n", i, page_addr, page_addr-start_phys_mem);
+            fprintf(stderr, "get_next_cont(): \tNo physical pages found at index %d | Page address updated to %lu (Offset from start is now %lu)\n", i, page_addr, page_addr-start_phys_mem);
 
         }
 
         else {
 
-            fprintf(stderr, "\tPhysical page located within index %d | Bitmap at this index: %x", i, phys_bitmap->bitmap[i]);
+            fprintf(stderr, "get_next_cont(): \tPhysical page located within index %d | Bitmap at this index: %x\n", i, phys_bitmap->bitmap[i]);
 
             unsigned char map = 1;
             for ( int j = 0; j < 8; j++ ) {
@@ -364,18 +368,18 @@ unsigned long get_next_cont(int num_pages) {
                 if ( ! (phys_bitmap->bitmap[i] & map) ) {
 
                     num_page++;
-                    fprintf(stderr, "\t\tPhysical page %d found at bit %d with physical address %lu (Offset from start is %lu)\n", num_page, j, page_addr, page_addr-start_phys_mem);
+                    fprintf(stderr, "get_next_cont(): \t\tPhysical page %d of %d found at bit %d with physical address %lu (Offset from start is %lu)\n", num_page, num_pages, j, page_addr, page_addr-start_phys_mem);
 
                     if ( num_page == 1 ) {
                         start_addr = page_addr;
-                        fprintf(stderr, "\t\t\tStarting address set to %lu", page_addr);
+                        fprintf(stderr, "get_next_cont(): \t\t\tStarting address set to %lu\n", page_addr);
                     }
 
                     if ( num_page == num_pages ) {
-                        fprintf(stderr, "\t%d contiguous physical pages found\n", num_page);
+                        fprintf(stderr, "get_next_cont(): \t%d contiguous physical pages found\n", num_page);
                         for ( int i = 0; i < num_pages; i++ ) {
-                            fprintf(stderr, "\t\tPhysical page %d with physical address %lu (Offset from start is %lu)\n", i, start_addr+(i*PGSIZE), start_addr+(i*PGSIZE)-start_phys_mem);
-                            set_bitmap(phys_bitmap, start_addr + (i*PGSIZE), 1);
+                            fprintf(stderr, "get_next_cont(): \t\tPhysical page %d with physical address %lu (Offset from start is %lu)\n", i, start_addr+(i*PGSIZE), start_addr+(i*PGSIZE)-start_phys_mem);
+                            set_bitmap(phys_bitmap, start_addr + (i*PGSIZE) - start_phys_mem, 1);
                         }
                         return start_addr;
                     }
@@ -383,21 +387,21 @@ unsigned long get_next_cont(int num_pages) {
                 } else {
                     if ( num_page ){
                         num_page = 0;
-                        fprintf(stderr, "\tNot enough contiguous pages found: Counter reset\n");
+                        fprintf(stderr, "get_next_cont(): \tNot enough contiguous pages found: Counter reset\n");
                     }
                 }
 
                 page_addr += PGSIZE;
                 map <<= 1;
 
-                fprintf(stderr, "\t\tPage address updated to %lu (Offset from start is now %lu)\n", page_addr, page_addr-start_phys_mem);
+                fprintf(stderr, "get_next_cont(): \t\tPage address updated to %lu (Offset from start is now %lu)\n", page_addr, page_addr-start_phys_mem);
 
             }
         } 
 
     }
 
-    fprintf(stderr, "\tCannot find sufficient number of contiguous free physical pages\n");
+    fprintf(stderr, "get_next_cont(): \tCannot find sufficient number of contiguous free physical pages\n");
 
     return 0;
 }
@@ -413,27 +417,27 @@ unsigned long get_next_vpn(int num_pages){
     for ( int i = 0; i < NUM_PAGES/8; i++ ) {
 
         if ( virt_bitmap->bitmap[i] == 255 ) {
-            temp_vpn += (PGSIZE * 8); 
-            fprintf(stderr, "\tNo virtual pages found at index %d | Virtual page address updated to %lu\n", i, temp_vpn);
+            temp_vpn += (8 * PGSIZE); 
+            fprintf(stderr, "get_next_vpn(): \tNo virtual pages found at index %d | Virtual address updated to %lu\n", i, temp_vpn);
         }
         else {
 
-            fprintf(stderr, "\tVirtual page located within index %d | Bitmap at this index: %x", i, virt_bitmap->bitmap[i]);
+            fprintf(stderr, "get_next_vpn(): \tVirtual page located within index %d | Bitmap at this index: %x\n", i, virt_bitmap->bitmap[i]);
 
             unsigned char map = 1;
             for ( int j = 0; j < 8; j++ ) {
 
                 if ( ! (virt_bitmap->bitmap[i] & map) ) {
                     counter++;
-                    fprintf(stderr, "\t\tVirtual page %d found at bit %d with virtual address %lu\n", counter, j, temp_vpn);
+                    fprintf(stderr, "get_next_vpn(): \t\tVirtual page %d found at bit %d with virtual address %lu\n", counter, j, temp_vpn);
                     if ( counter == 1 ) {
                         vpn = temp_vpn;
-                        fprintf(stderr, "\t\t\tStarting address set to %lu", vpn);
+                        fprintf(stderr, "get_next_vpn(): \t\t\tStarting address set to %lu\n", vpn);
                     }
                     if ( counter == num_pages ) {
-                        fprintf(stderr, "\t%d contiguous virtual pages found\n", counter);
+                        fprintf(stderr, "get_next_vpn(): \t%d contiguous virtual pages found\n", counter);
                         for ( int i = 0; i < num_pages; i++ ) {
-                            fprintf(stderr, "\t\tVirtual page %d with virtual address %lu \n", i, vpn+(i*PGSIZE));                           
+                            fprintf(stderr, "get_next_vpn(): \t\tVirtual page %d with virtual address %lu \n", i, vpn+(i*PGSIZE));                           
                             set_bitmap(virt_bitmap, vpn + (i*PGSIZE), 1);
                         }
                         return vpn;
@@ -441,13 +445,13 @@ unsigned long get_next_vpn(int num_pages){
                 } else {
                     if ( counter ) {
                         counter = 0;
-                        fprintf(stderr, "\t\t\tNot enough contiguous pages found: Counter reset\n");
+                        fprintf(stderr, "get_next_vpn(): \t\t\tNot enough contiguous pages found: Counter reset\n");
 
                     }
                     
                 }
 
-                fprintf(stderr, "\t\tVirtual address updated to %lu\n", temp_vpn);
+                fprintf(stderr, "get_next_vpn(): \t\tVirtual address updated to %lu\n", temp_vpn);
 
                 temp_vpn += PGSIZE;
                 map <<= 1;
@@ -456,7 +460,7 @@ unsigned long get_next_vpn(int num_pages){
 
     }
 
-    fprintf(stderr, "\tCannot find sufficient number of contiguous free virtual pages\n");
+    fprintf(stderr, "get_next_vpn(): \tCannot find sufficient number of contiguous free virtual pages\n");
 
 
     return 1;
@@ -472,13 +476,13 @@ void *t_malloc(unsigned int num_bytes) {
     * HINT: If the physical memory is not yet initialized, then allocate and initialize.
     */
 
-    fprintf(stderr, "t_malloc() called requesting %lu bytes\n", num_bytes);
+    fprintf(stderr, "t_malloc() called requesting %u bytes\n", num_bytes);
 
     if ( pgdir == NULL ) {
-        fprintf(stderr, "\tPage directory has not been allocated: Calling set_phys_mem()\n");
+        fprintf(stderr, "t_malloc(): \tPage directory has not been allocated: Calling set_phys_mem()\n");
         if ( set_physical_mem() == -1 ) return NULL;
-        fprintf(stderr, "\tPage directory has been allocated: Calling set_bitmap()\n");
-        set_bitmap(phys_bitmap, start_phys_mem, 1);
+        fprintf(stderr, "t_malloc(): \tPage directory has been allocated: Calling set_bitmap()\n");
+        set_bitmap(phys_bitmap, start_phys_mem - start_phys_mem, 1);
     }
 /* 
     * HINT: If the page directory is not initialized, then initialize the
@@ -488,29 +492,22 @@ void *t_malloc(unsigned int num_bytes) {
     */
 
     int num_pages = (num_bytes+PGSIZE-1)/PGSIZE;
-    fprintf(stderr, "\t%d physical pages must be allocated\n", num_pages);
+    fprintf(stderr, "t_malloc(): \t%d physical pages must be allocated\n", num_pages);
 
-    fprintf(stderr, "\tCalling get_next_avail()\n");
+    fprintf(stderr, "t_malloc(): \tCalling get_next_avail()\n");
     unsigned long *pfns = get_next_avail(num_pages);
     if ( !pfns ) return NULL;
 
-    fprintf(stderr, "\tCalling get_next_vpn()\n");
+    fprintf(stderr, "t_malloc(): \tCalling get_next_vpn()\n");
     unsigned long vpn = get_next_vpn(num_pages);
+    fprintf(stderr, "t_malloc(): \tVirtual address received: %lu\n", vpn);
     if ( vpn == 1 ) return NULL;
 
 
     for ( int i = 0; i < num_pages; i++) {
-        fprintf(stderr, "\tCalling page_map() to map virtual address %lu to physical address %lu\n", vpn+(PGSIZE*i), pfns[i]);
+        fprintf(stderr, "t_malloc(): \tCalling page_map() to map virtual address %lu to physical address %lu\n", vpn+(PGSIZE*i), pfns[i]);
         if ( page_map(vpn + (PGSIZE*i), pfns[i]) == -1 ) return NULL;
     }
-
-    /*if ( num_pages > 1 ) {
-        mpnode_t *new = (mpnode_t *)malloc(sizeof(mpnode_t));
-        new->next = mp_list;
-        new->num_pages = num_pages;
-        new->start_addr = vpn;
-        mp_list = new;
-    }*/
 
     return (void *) vpn;
 }
@@ -527,34 +524,34 @@ void t_free(void *va, int size) {
     * Part 2: Also, remove the translation from the TLB
     */
 
-   fprintf(stderr, "t_free() called on virtual address %lu with size %d\n", va, size);
+   fprintf(stderr, "t_free() called on virtual address %lu with size %d\n", (unsigned long)va, size);
 
    unsigned long virt_addr = (unsigned long) va;
 
    if ( virt_addr % PGSIZE != 0 ) {
-        fprintf(stderr, "\tFree failed: Virtual address lies in the middle of a page\n");
+        fprintf(stderr, "t_free(): \tFree failed: Virtual address lies in the middle of a page\n");
         return;   // Ensure address to be freed is the start of a page
    }
    
    int num_pages = (size+PGSIZE-1)/PGSIZE;
-    fprintf(stderr, "\tAttempting to free %d pages\n", num_pages);
+     fprintf(stderr, "t_free(): \tAttempting to free %d pages\n", num_pages);
 
    for ( int i = 0; i < num_pages; i++ ) {
         if ( get_bitmap(virt_bitmap, virt_addr + (i*PGSIZE)) != 1) {
-            fprintf(stderr, "\tPage with virtual address %lu is not in use: Free failed\n", virt_addr + (i*PGSIZE));
+            fprintf(stderr, "t_free(): \tPage with virtual address %lu is not in use: Free failed\n", virt_addr + (i*PGSIZE));
             return;  // Ensure all pages being freed are currently in use
         }
    }
-   fprintf(stderr, "\tAll virtual addresses are in use\n");
+   fprintf(stderr, "t_free(): \tAll virtual addresses are in use\n");
 
-    fprintf(stderr, "\tTranslating virtual addresses to physical addresses:\n");
+    fprintf(stderr, "t_free(): \tTranslating virtual addresses to physical addresses:\n");
    for ( int i = 0; i < num_pages; i++ ) {
         unsigned long pa = translate(virt_addr + (i*PGSIZE));
-        fprintf(stderr, "\t\tTranslated virtual address %lu to physical address %lu\n", virt_addr + (i*PGSIZE), pa);
+        fprintf(stderr, "t_free(): \t\tTranslated virtual address %lu to physical address %lu\n", virt_addr + (i*PGSIZE), pa);
         set_bitmap(phys_bitmap, pa, 0);     // Set all physical pages as free in physical bitmap
    }
 
-    fprintf(stderr, "\tMapping virtual addresses to NULL\n");
+    fprintf(stderr, "t_free(): \tMapping virtual addresses to NULL\n");
 
    for ( int i = 0; i < num_pages; i++ ) {
         page_map(virt_addr + (i*PGSIZE), 0);    // Map all pages being freed to NULL
@@ -577,22 +574,33 @@ int put_value(void *va, void *val, int size) {
     * function.
     */
 
+   fprintf(stderr, "put_value() called to copy %d bits from address %lu to virtual address %lu\n", size, (unsigned long) val, (unsigned long) va);
+
    unsigned long virt_addr = (unsigned long)va;
 
    while ( size > 0 ) {
 
         void *pa = (void *)translate(virt_addr);
+        fprintf(stderr, "put_value(): \tTranslated virtual address %lu to physical address %lu\n", virt_addr, (unsigned long) pa);
 
         unsigned long offset = virt_addr & offmask;
         int bytes_left_in_page = PGSIZE - offset;
+        fprintf(stderr, "put_value(): \tAddress translated with offset of %lu | No more than %d bytes can be written to the physical page\n", offset, bytes_left_in_page);
 
         if ( size > bytes_left_in_page ) {
+            fprintf(stderr, "put_value(): \tPerforming copy from %lu to %lu of %d bytes\n", (unsigned long) val, (unsigned long) pa, bytes_left_in_page);
             memcpy(pa, val, bytes_left_in_page);
             size -= bytes_left_in_page;
             virt_addr += bytes_left_in_page;
             val += bytes_left_in_page;
+            fprintf(stderr, "put_value(): \t\tCopy performed: Virtual address updated to %lu, input address updated to %lu, and size updated to %d\n", virt_addr, (unsigned long) val, size);
         } else {
+            fprintf(stderr, "put_value(): \tPerforming copy from %lu to %lu of %d bytes\n", (unsigned long) val, (unsigned long) pa, size);
             memcpy(pa, val, size);
+            virt_addr += size;
+            val += size;
+            size -= size;
+            fprintf(stderr, "put_value(): \t\tCopy performed: Virtual address updated to %lu, input address updated to %lu, and size updated to %d\n", virt_addr, (unsigned long) val, size);
             return 0;
         }
 
@@ -626,6 +634,9 @@ void get_value(void *va, void *val, int size) {
             val += bytes_left_in_page;
         } else {
             memcpy(val, pa, size);
+            virt_addr += size;
+            val += size;
+            size -= size;
             return;
         }
 
@@ -658,12 +669,11 @@ void mat_mult(void *mat1, void *mat2, int size, void *answer) {
                 int address_b = (unsigned int)mat2 + ((k * size * sizeof(int))) + (j * sizeof(int));
                 get_value( (void *)address_a, &a, sizeof(int));
                 get_value( (void *)address_b, &b, sizeof(int));
-                // printf("Values at the index: %d, %d, %d, %d, %d\n", 
-                //     a, b, size, (i * size + k), (k * size + j));
+                printf("Values at the index: %d, %d, %d, %d, %d\n", a, b, size, (i * size + k), (k * size + j));
                 c += (a * b);
             }
             int address_c = (unsigned int)answer + ((i * size * sizeof(int))) + (j * sizeof(int));
-            // printf("This is the c: %d, address: %x!\n", c, address_c);
+            printf("This is the c: %d, address: %x!\n", c, address_c);
             put_value((void *)address_c, (void *)&c, sizeof(int));
         }
     }

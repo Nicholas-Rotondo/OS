@@ -4,13 +4,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 //Assume the address space is 32 bits, so the max memory size is 4GB
 //Page size is 4KB
 
 //Add any important includes here which you may need
 
-#define PGSIZE 4096
+#define PGSIZE 65536
 #define BITS_FOR_OFFSET (log2(PGSIZE))
 
 // Maximum size of virtual memory
@@ -41,9 +42,10 @@ typedef struct tlb {
     * Think about the size of each TLB entry that performs virtual to physical
     * address translation.
     */
-    void *phys_addr = NULL;
-    void *virt_addr = NULL;
-    unsigned long tag = virt_addr/PGSIZE;
+    void *phys_addr;
+    void *virt_addr;
+    unsigned long tag;
+
 }tlb_t;
 
 typedef struct bitmap{
