@@ -42,10 +42,12 @@ typedef struct tlb {
     * Think about the size of each TLB entry that performs virtual to physical
     * address translation.
     */
-    void *phys_addr;
-    void *virt_addr;
+    unsigned long phys_addr;
+    unsigned long virt_addr;
     unsigned long tag;
 }tlb_t;
+
+tlb_t *tlb_arr;
 
 typedef struct bitmap{
 
@@ -68,14 +70,14 @@ int page_map(unsigned long va, unsigned long pa);
 unsigned long *get_next_avail(int num_pages);
 unsigned long get_next_cont(int num_pages);
 unsigned long get_next_vpn(int num_pages);
-bool check_in_tlb(void *va);
-void put_in_tlb(void *va, void *pa);
+bool check_in_tlb(unsigned long *va);
+void put_in_tlb(unsigned long *va, unsigned long *pa);
 void *t_malloc(unsigned int num_bytes);
 void t_free(void *va, int size);
 int put_value(void *va, void *val, int size);
 void get_value(void *va, void *val, int size);
 void mat_mult(void *mat1, void *mat2, int size, void *answer);
-void print_TLB_missrate();
+void print_TLB_missrate(int hits, int misses);
 void set_bitmap(bitmap_t *bitmap, unsigned long addr, int value);
 int get_bitmap(bitmap_t *bitmap, unsigned long addr);
 void initialize_page_directory();

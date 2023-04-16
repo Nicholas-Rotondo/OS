@@ -1,0 +1,168 @@
+Allocating three arrays of 400 bytes
+Addresses of the allocations: 0, 1000, 2000
+Storing integers to generate a SIZExSIZE matrix
+Fetching matrix elements stored in the arrays
+1 1 1 1 1 
+1 1 1 1 1 
+1 1 1 1 1 
+1 1 1 1 1 
+1 1 1 1 1 
+Performing matrix multiplication with itself!
+Values at the index: 1, 1, 5, 0, 0
+Values at the index: 1, 1, 5, 1, 5
+Values at the index: 1, 1, 5, 2, 10
+Values at the index: 1, 1, 5, 3, 15
+Values at the index: 1, 1, 5, 4, 20
+This is the c: 5, address: 2000!
+Values at the index: 1, 1, 5, 0, 1
+Values at the index: 1, 1, 5, 1, 6
+Values at the index: 1, 1, 5, 2, 11
+Values at the index: 1, 1, 5, 3, 16
+Values at the index: 1, 1, 5, 4, 21
+This is the c: 5, address: 2004!
+Values at the index: 1, 1, 5, 0, 2
+Values at the index: 1, 1, 5, 1, 7
+Values at the index: 1, 1, 5, 2, 12
+Values at the index: 1, 1, 5, 3, 17
+Values at the index: 1, 1, 5, 4, 22
+This is the c: 5, address: 2008!
+Values at the index: 1, 1, 5, 0, 3
+Values at the index: 1, 1, 5, 1, 8
+Values at the index: 1, 1, 5, 2, 13
+Values at the index: 1, 1, 5, 3, 18
+Values at the index: 1, 1, 5, 4, 23
+This is the c: 5, address: 200c!
+Values at the index: 1, 1, 5, 0, 4
+Values at the index: 1, 1, 5, 1, 9
+Values at the index: 1, 1, 5, 2, 14
+Values at the index: 1, 1, 5, 3, 19
+Values at the index: 1, 1, 5, 4, 24
+This is the c: 5, address: 2010!
+Values at the index: 1, 1, 5, 5, 0
+Values at the index: 1, 1, 5, 6, 5
+Values at the index: 1, 1, 5, 7, 10
+Values at the index: 1, 1, 5, 8, 15
+Values at the index: 1, 1, 5, 9, 20
+This is the c: 5, address: 2014!
+Values at the index: 1, 1, 5, 5, 1
+Values at the index: 1, 1, 5, 6, 6
+Values at the index: 1, 1, 5, 7, 11
+Values at the index: 1, 1, 5, 8, 16
+Values at the index: 1, 1, 5, 9, 21
+This is the c: 5, address: 2018!
+Values at the index: 1, 1, 5, 5, 2
+Values at the index: 1, 1, 5, 6, 7
+Values at the index: 1, 1, 5, 7, 12
+Values at the index: 1, 1, 5, 8, 17
+Values at the index: 1, 1, 5, 9, 22
+This is the c: 5, address: 201c!
+Values at the index: 1, 1, 5, 5, 3
+Values at the index: 1, 1, 5, 6, 8
+Values at the index: 1, 1, 5, 7, 13
+Values at the index: 1, 1, 5, 8, 18
+Values at the index: 1, 1, 5, 9, 23
+This is the c: 5, address: 2020!
+Values at the index: 1, 1, 5, 5, 4
+Values at the index: 1, 1, 5, 6, 9
+Values at the index: 1, 1, 5, 7, 14
+Values at the index: 1, 1, 5, 8, 19
+Values at the index: 1, 1, 5, 9, 24
+This is the c: 5, address: 2024!
+Values at the index: 1, 1, 5, 10, 0
+Values at the index: 1, 1, 5, 11, 5
+Values at the index: 1, 1, 5, 12, 10
+Values at the index: 1, 1, 5, 13, 15
+Values at the index: 1, 1, 5, 14, 20
+This is the c: 5, address: 2028!
+Values at the index: 1, 1, 5, 10, 1
+Values at the index: 1, 1, 5, 11, 6
+Values at the index: 1, 1, 5, 12, 11
+Values at the index: 1, 1, 5, 13, 16
+Values at the index: 1, 1, 5, 14, 21
+This is the c: 5, address: 202c!
+Values at the index: 1, 1, 5, 10, 2
+Values at the index: 1, 1, 5, 11, 7
+Values at the index: 1, 1, 5, 12, 12
+Values at the index: 1, 1, 5, 13, 17
+Values at the index: 1, 1, 5, 14, 22
+This is the c: 5, address: 2030!
+Values at the index: 1, 1, 5, 10, 3
+Values at the index: 1, 1, 5, 11, 8
+Values at the index: 1, 1, 5, 12, 13
+Values at the index: 1, 1, 5, 13, 18
+Values at the index: 1, 1, 5, 14, 23
+This is the c: 5, address: 2034!
+Values at the index: 1, 1, 5, 10, 4
+Values at the index: 1, 1, 5, 11, 9
+Values at the index: 1, 1, 5, 12, 14
+Values at the index: 1, 1, 5, 13, 19
+Values at the index: 1, 1, 5, 14, 24
+This is the c: 5, address: 2038!
+Values at the index: 1, 1, 5, 15, 0
+Values at the index: 1, 1, 5, 16, 5
+Values at the index: 1, 1, 5, 17, 10
+Values at the index: 1, 1, 5, 18, 15
+Values at the index: 1, 1, 5, 19, 20
+This is the c: 5, address: 203c!
+Values at the index: 1, 1, 5, 15, 1
+Values at the index: 1, 1, 5, 16, 6
+Values at the index: 1, 1, 5, 17, 11
+Values at the index: 1, 1, 5, 18, 16
+Values at the index: 1, 1, 5, 19, 21
+This is the c: 5, address: 2040!
+Values at the index: 1, 1, 5, 15, 2
+Values at the index: 1, 1, 5, 16, 7
+Values at the index: 1, 1, 5, 17, 12
+Values at the index: 1, 1, 5, 18, 17
+Values at the index: 1, 1, 5, 19, 22
+This is the c: 5, address: 2044!
+Values at the index: 1, 1, 5, 15, 3
+Values at the index: 1, 1, 5, 16, 8
+Values at the index: 1, 1, 5, 17, 13
+Values at the index: 1, 1, 5, 18, 18
+Values at the index: 1, 1, 5, 19, 23
+This is the c: 5, address: 2048!
+Values at the index: 1, 1, 5, 15, 4
+Values at the index: 1, 1, 5, 16, 9
+Values at the index: 1, 1, 5, 17, 14
+Values at the index: 1, 1, 5, 18, 19
+Values at the index: 1, 1, 5, 19, 24
+This is the c: 5, address: 204c!
+Values at the index: 1, 1, 5, 20, 0
+Values at the index: 1, 1, 5, 21, 5
+Values at the index: 1, 1, 5, 22, 10
+Values at the index: 1, 1, 5, 23, 15
+Values at the index: 1, 1, 5, 24, 20
+This is the c: 5, address: 2050!
+Values at the index: 1, 1, 5, 20, 1
+Values at the index: 1, 1, 5, 21, 6
+Values at the index: 1, 1, 5, 22, 11
+Values at the index: 1, 1, 5, 23, 16
+Values at the index: 1, 1, 5, 24, 21
+This is the c: 5, address: 2054!
+Values at the index: 1, 1, 5, 20, 2
+Values at the index: 1, 1, 5, 21, 7
+Values at the index: 1, 1, 5, 22, 12
+Values at the index: 1, 1, 5, 23, 17
+Values at the index: 1, 1, 5, 24, 22
+This is the c: 5, address: 2058!
+Values at the index: 1, 1, 5, 20, 3
+Values at the index: 1, 1, 5, 21, 8
+Values at the index: 1, 1, 5, 22, 13
+Values at the index: 1, 1, 5, 23, 18
+Values at the index: 1, 1, 5, 24, 23
+This is the c: 5, address: 205c!
+Values at the index: 1, 1, 5, 20, 4
+Values at the index: 1, 1, 5, 21, 9
+Values at the index: 1, 1, 5, 22, 14
+Values at the index: 1, 1, 5, 23, 19
+Values at the index: 1, 1, 5, 24, 24
+This is the c: 5, address: 2060!
+5 5 5 5 5 
+5 5 5 5 5 
+5 5 5 5 5 
+5 5 5 5 5 
+5 5 5 5 5 
+Freeing the allocations!
+Checking if allocations were freed!
+free function works

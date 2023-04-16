@@ -14,8 +14,6 @@ int misses = 0;
 int eviction_count = 0;
 int check_occupancy = 0;
 
-
-
 /*
 Function responsible for allocating and setting your physical memory 
 */
@@ -62,11 +60,12 @@ int set_physical_mem() {
     if ( virt_bitmap->bitmap == NULL ) return -1;
     fprintf(stderr, "set_physical_mem(): \tThe virtual bitmap represents %d virtual pages using %d indices\n", virt_bitmap->map_size, virt_bitmap->map_length);
    
-    tlb_t *tlb_arr = (tlb_t * )malloc(sizeof(tlb_t) * TLB_ENTRIES);
+   
+   tlb_arr = (tlb_t *)malloc(TLB_ENTRIES * sizeof(tlb_t));
     if(tlb_arr == NULL) {
         fprintf(stderr, "set_physical_mem(): \tMemory allocation failed\n");
-        return 1;
-    } 
+        return -1;
+    }
 
     return 0;
 
@@ -79,8 +78,8 @@ int set_physical_mem() {
 */
 
 
-/*int
-add_TLB(unsigned long *va, unsigned long *pa)
+int
+add_TLB(unsigned long va, unsigned long pa)
 {
     //Part 2 HINT: Add a virtual to physical page translation to the TLB
     // we need to find a way to store the age of a tlb
@@ -88,8 +87,8 @@ add_TLB(unsigned long *va, unsigned long *pa)
     // for now just keep this simple implementation and add donce we have an idea
     tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t)); 
     if(tlb == NULL) {
-        fprintf(stderr, "Memory allocation failed");
-        return 1;
+        fprintf(stderr, "Memory allocation failed\n");
+        return -1;
     }  
 
     int i;
@@ -97,35 +96,40 @@ add_TLB(unsigned long *va, unsigned long *pa)
     tlb->virt_addr = va;
     tlb->phys_addr = pa;
 
+    fprintf(stderr, "add_tlb(): \tarrived here\n");
+
     for(i = 0; i < TLB_ENTRIES; i++) {
-        if(tlb_arr[0] == NULL) {
-            tlb_arr[0] = tlb;
+        //fprintf(stderr, "add_tlb(): \tarrived in for loop:\n");
+        if(tlb_arr[i].phys_addr == 0 && tlb_arr[i].virt_addr == 0) {
+            tlb_arr[i] = *tlb;
             check_occupancy += 1;
-            fprintf(stderr, "added tlb to entry 0, occupancy is: %d", check_occupancy);
+            fprintf(stderr, "add_tlb(): \tadded tlb to index %d, occupancy is: %d\n", i, check_occupancy);
+            break;
     }
         if(eviction_count == TLB_ENTRIES) {
             eviction_count = 0;
-            fprintf(stderr, "we reached eviction count conditional");
+            fprintf(stderr, "add_tlb(): \twe reached eviction count conditional\n");
         }
         if(check_occupancy == TLB_ENTRIES) {
             check_occupancy = 0;
-            tlb_arr[eviction_count] = NULL;
-            tlb_arr[eviction_count] = tlb;
+            // do we have to set null here?
+            //tlb_arr[eviction_count] = NULL;
+            tlb_arr[eviction_count] = *tlb;
             eviction_count += 1;
-            fprintf(stderr, "eviction count is: %d", eviction_count);
+            fprintf(stderr, "add_tlb(): \teviction count is: %d\n", eviction_count);
         }
-        if(tlb_arr[0] != NULL) {
-            //check the array and see if there is an open slot
-            if(tlb_arr[i] == NULL) {
-                tlb_arr[i] = tlb_store;
-                check_occupancy += 1;
-                fprintf(stderr, "added tlb to index %d, occupancy is: %d", i, check_occupancy);
-            }
-        }
+        // if(tlb_arr[0].phys_addr != 0 && tlb_arr[0].virt_addr != 0) {
+        //     //check the array and see if there is an open slot
+        //     if(tlb_arr[i].phys_addr == 0 && tlb_arr[i].virt_addr == 0) {
+        //         tlb_arr[i] = *tlb;
+        //         check_occupancy += 1;
+        //         fprintf(stderr, "added tlb to index %d, occupancy is: %d\n", i, check_occupancy);
+        //     }
+        // }
     }
     free(tlb);
     return 0;
-}*/
+}
 
 
 
@@ -135,28 +139,28 @@ add_TLB(unsigned long *va, unsigned long *pa)
 * Feel free to extend this function and change the return type.
 */
 
-/*pte_t *
-check_TLB(unsigned long *va) {
+pte_t *
+check_TLB(unsigned long va) {
 
     // Part 2: TLB lookup code here 
 
     pte_t *ret_phys_addr = NULL;
     tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t));
     if(tlb == NULL) {
-        fprintf(stderr, "Memory allocation failed");
-        return 1;
+        fprintf(stderr, "Memory allocation failed\n");
+        return NULL;
     }
     
     unsigned long vpn = (unsigned long)va/PGSIZE;
 
-    if(vpn == tlb_arr[vpn%TLB_ENTRIES]->tag) {
-        ret_phys_addr = tlb_store->phys_addr;
+    if(vpn == tlb_arr[vpn%TLB_ENTRIES].tag) {
+        ret_phys_addr = (pte_t *)tlb->phys_addr;
         hits += 1;
-        fprintf(stderr, "hit count is: %d", hits);
+        fprintf(stderr, "check_tlb(): \thit count is: %d\n", hits);
     }
     else {
         misses += 1;
-        fprintf(stderr, "miss count is: %d", misses);
+        fprintf(stderr, "check_tlb(): \tmiss count is: %d\n", misses);
         // we return NULL here so we can check this in our translate function.
         // maybe we just do the actual translation here?  
         return NULL;
@@ -166,14 +170,14 @@ check_TLB(unsigned long *va) {
     return ret_phys_addr;
 
 //This function should return a pte_t pointer
-}*/
+}
 
 /*
 * Part 2: Print TLB miss rate.
 * Feel free to extend the function arguments or return type.
 */
 
-/*void
+void
 print_TLB_missrate(int hits, int misses)
 {
     double miss_rate = 0;	
@@ -182,7 +186,7 @@ print_TLB_missrate(int hits, int misses)
     miss_rate = (hits/(hits+misses));
 
     fprintf(stderr, "TLB miss rate %lf \n", miss_rate);
-}*/
+}
 
 
 /*
@@ -199,10 +203,11 @@ unsigned long translate(unsigned long va) {
     */
 
     // uncomment this once paging works.
-    // pte_t *phys_addr = check_TLB(va);
-    // if(phys_addr != NULL) {
-    //     return 1;
-    // }
+    pte_t *phys_addr = (pte_t *)check_TLB(va);
+    if(phys_addr != NULL) {
+        fprintf(stderr, "translate(): \tsuccessfully arrived here in translate with phys_addr\n");
+        return 1;
+    }
 
     unsigned long offset = va & offmask;
     unsigned long pt_index = (va & ptmask) >> offbits;
@@ -276,6 +281,7 @@ int page_map(unsigned long va, unsigned long pa) {
     if ( ! pgtable[pt_index] ) {
         pgtable[pt_index] = pa;
         fprintf(stderr, "page_map(): \t\tPage table indexed: Mapped physical address %lu to index %lu in page table\n", pgtable[pt_index], pt_index);
+        add_TLB(va, pa);
     } else {
         if ( pa == 0 ) {
             pgtable[pt_index] = pa;
