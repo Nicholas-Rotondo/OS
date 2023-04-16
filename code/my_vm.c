@@ -79,7 +79,7 @@ int set_physical_mem() {
 */
 
 
-int
+/*int
 add_TLB(unsigned long *va, unsigned long *pa)
 {
     //Part 2 HINT: Add a virtual to physical page translation to the TLB
@@ -125,7 +125,7 @@ add_TLB(unsigned long *va, unsigned long *pa)
     }
     free(tlb);
     return 0;
-}
+}*/
 
 
 
@@ -135,10 +135,10 @@ add_TLB(unsigned long *va, unsigned long *pa)
 * Feel free to extend this function and change the return type.
 */
 
-pte_t *
+/*pte_t *
 check_TLB(unsigned long *va) {
 
-    /* Part 2: TLB lookup code here */
+    // Part 2: TLB lookup code here 
 
     pte_t *ret_phys_addr = NULL;
     tlb_t *tlb = (tlb_t *)malloc(sizeof(tlb_t));
@@ -166,16 +166,14 @@ check_TLB(unsigned long *va) {
     return ret_phys_addr;
 
 //This function should return a pte_t pointer
-}
-
-*/
+}*/
 
 /*
 * Part 2: Print TLB miss rate.
 * Feel free to extend the function arguments or return type.
 */
 
-void
+/*void
 print_TLB_missrate(int hits, int misses)
 {
     double miss_rate = 0;	
@@ -184,7 +182,7 @@ print_TLB_missrate(int hits, int misses)
     miss_rate = (hits/(hits+misses));
 
     fprintf(stderr, "TLB miss rate %lf \n", miss_rate);
-}
+}*/
 
 
 /*
@@ -554,7 +552,7 @@ void t_free(void *va, int size) {
    for ( int i = 0; i < num_pages; i++ ) {
         unsigned long pa = translate(virt_addr + (i*PGSIZE));
         fprintf(stderr, "t_free(): \t\tTranslated virtual address %lu to physical address %lu\n", virt_addr + (i*PGSIZE), pa);
-        set_bitmap(phys_bitmap, pa, 0);     // Set all physical pages as free in physical bitmap
+        set_bitmap(phys_bitmap, pa - start_phys_mem, 0);     // Set all physical pages as free in physical bitmap
    }
 
     fprintf(stderr, "t_free(): \tMapping virtual addresses to NULL\n");
