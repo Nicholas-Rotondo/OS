@@ -394,11 +394,11 @@ int put_value(void *va, void *val, int size) {
 
     if ( !pgdir ) return -1;
 
-   while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1 );
+    while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1 );
 
-   unsigned long virt_addr = (unsigned long) va;
+    unsigned long virt_addr = (unsigned long) va;
 
-   while ( size > 0 ) {
+    while ( size > 0 ) {
 
         void *pa = (void *)translate(virt_addr);
         if ( pa == NULL ) {
@@ -423,11 +423,11 @@ int put_value(void *va, void *val, int size) {
             return 0;
         }
 
-   }
+    }
 
-    __atomic_clear(&lock, __ATOMIC_SEQ_CST);
+        __atomic_clear(&lock, __ATOMIC_SEQ_CST);
 
-    return -1;
+        return -1;
 
 }
 
@@ -435,11 +435,11 @@ void get_value(void *va, void *val, int size) {
 
     if ( !pgdir ) return;
 
-   while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1);
+    while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1);
 
-   unsigned long virt_addr = (unsigned long)va;
+    unsigned long virt_addr = (unsigned long)va;
 
-   while ( size > 0 ) {
+    while ( size > 0 ) {
 
         void *pa = (void *)translate(virt_addr);
         if ( pa == NULL ) {
@@ -464,7 +464,7 @@ void get_value(void *va, void *val, int size) {
             return;
 
         }
-   }
+    }
 }
 
 void mat_mult(void *mat1, void *mat2, int size, void *answer) {
