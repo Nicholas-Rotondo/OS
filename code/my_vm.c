@@ -244,6 +244,8 @@ unsigned long get_next_cont(int num_pages) {
 
 void t_free(void *va, int size) {
 
+    if ( !pgdir ) return;
+
    while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1 );
 
    unsigned long virt_addr = (unsigned long) va;
@@ -390,6 +392,8 @@ void print_TLB_missrate() {
 
 int put_value(void *va, void *val, int size) {
 
+    if ( !pgdir ) return -1;
+
    while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1 );
 
    unsigned long virt_addr = (unsigned long) va;
@@ -429,6 +433,8 @@ int put_value(void *va, void *val, int size) {
 
 void get_value(void *va, void *val, int size) {
 
+    if ( !pgdir ) return;
+
    while ( __atomic_test_and_set(&lock, __ATOMIC_SEQ_CST) == 1);
 
    unsigned long virt_addr = (unsigned long)va;
@@ -462,6 +468,8 @@ void get_value(void *va, void *val, int size) {
 }
 
 void mat_mult(void *mat1, void *mat2, int size, void *answer) {
+
+    if ( !pgdir ) return;
 
     int x, y, val_size = sizeof(int);
     int i, j, k;
