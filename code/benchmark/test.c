@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include "../my_vm.h"
 
-#define SIZE 5
-#define ARRAY_SIZE 400
+#define SIZE 10
+#define ARRAY_SIZE 40000
 
 int main() {
 
@@ -62,14 +62,12 @@ int main() {
     t_free(b, ARRAY_SIZE);
     t_free(c, ARRAY_SIZE);
 
-    print_TLB_missrate();
-
     printf("Checking if allocations were freed!\n");
     a = t_malloc(ARRAY_SIZE);
     if ((int)a == old_a)
         printf("free function works\n");
     else
-        printf("free function does not work\n");
+        printf("free function does not work\n"); 
 
     return 0;
 

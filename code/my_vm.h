@@ -12,7 +12,7 @@
 
 //Add any important includes here which you may need
 
-#define PGSIZE 65536
+#define PGSIZE 4096
 #define BITS_FOR_OFFSET (log2(PGSIZE))
 
 // Maximum size of virtual memory
@@ -25,8 +25,9 @@
 #define ADDR_BITS 32
 
 // Number of pages in memory
-#define NUM_PAGES ((MEMSIZE)/(PGSIZE))
+#define PAGES_IN_MEM ((MEMSIZE)/(PGSIZE))
 
+// Number of page table entries in a page
 #define PTE_PER_PAGE ((PGSIZE)/(4))
 
 // Represents a page table entry
@@ -48,8 +49,6 @@ typedef struct tlb {
 
 }tlb_t;
 
-tlb_t *tlb_arr;
-
 typedef struct bitmap{
 
     unsigned char *bitmap;
@@ -57,32 +56,24 @@ typedef struct bitmap{
 
 }bitmap_t;
 
-typedef struct mpnode {
-
-    struct mbnode *next;
-    unsigned long start_addr;
-    unsigned int num_pages;
-
-} mpnode_t;
-
 int set_physical_mem();
-unsigned long translate(unsigned long va);
-int page_map(unsigned long va, unsigned long pa);
-unsigned long *get_next_avail(int num_pages);
-unsigned long get_next_cont(int num_pages);
-unsigned long get_next_vpn(int num_pages);
-bool check_in_tlb(unsigned long *va);
-void put_in_tlb(unsigned long *va, unsigned long *pa);
 void *t_malloc(unsigned int num_bytes);
+unsigned long *get_next_avail(int num_pages);
+unsigned long get_next_vpn(int num_pages);
+int page_map(unsigned long va, unsigned long pa);
+unsigned long get_next_cont(int num_pages);
 void t_free(void *va, int size);
+int pt_empty(unsigned long pd_index);
+unsigned long translate(unsigned long va);
+void add_TLB(unsigned long va, unsigned long pa);
+unsigned long check_TLB(unsigned long va);
+void clear_TLB(unsigned long va);
+void print_TLB_missrate();
 int put_value(void *va, void *val, int size);
 void get_value(void *va, void *val, int size);
 void mat_mult(void *mat1, void *mat2, int size, void *answer);
-void print_TLB_missrate();
 void set_bitmap(bitmap_t *bitmap, unsigned long addr, int value);
 int get_bitmap(bitmap_t *bitmap, unsigned long addr);
-int pt_empty(unsigned long pd_index);
-void print_bitmaps();
 int exp_2(int power);
 
 #endif

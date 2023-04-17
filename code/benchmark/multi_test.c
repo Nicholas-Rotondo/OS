@@ -1,12 +1,12 @@
 #include "../my_vm.h"
 #include <time.h>
-#define num_threads 15
+#define num_threads 30
 
 void *pointers[num_threads];
 int ids[num_threads];
 pthread_t threads[num_threads];
-int alloc_size = 10000;
-int matrix_size = 5;
+int alloc_size = 50000;
+int matrix_size = 20;
 
 void *alloc_mem(void *id_arg) {
     int id = *((int *)id_arg);
@@ -119,6 +119,9 @@ int main() {
             break;
         }
     }
+
+    print_TLB_missrate();
+
     if (!flag) {
         printf("Some Problem with free!\n");
     }
