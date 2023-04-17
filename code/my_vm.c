@@ -269,6 +269,7 @@ void t_free(void *va, int size) {
    for ( int i = 0; i < num_pages; i++ ) {
 
         unsigned long pa = translate(virt_addr + (i*PGSIZE));
+        if ( pa == 0 ) return;
         set_bitmap(phys_bitmap, pa - start_phys_mem, 0);  
 
    }
@@ -282,11 +283,14 @@ void t_free(void *va, int size) {
 
    }
 
-   unsigned long pd_index = ((virt_addr & pdmask) >> ptbits) >> offbits;
+   unsigned long init_pd_index = ((virt_addr & pdmask) >> ptbits) >> offbits;
+   unsigned long end_pd_index = (((virt_addr + size) & pdmask) >> ptbits) >> offbits;
 
-   if ( pt_empty(pd_index) ) {
-        for ( int i = 0; i < pages_for_pagetable; i++ ) set_bitmap(phys_bitmap, pgdir[pd_index] + (i*PGSIZE) - start_phys_mem, 0);
-        pgdir[pd_index] = 0;
+   for ( unsigned long i = init_pd_index; i <= end_pd_index; i++ ) {
+        if ( pt_empty(i) ) {
+            for ( int j = 0; j < pages_for_pagetable; j++ ) set_bitmap(phys_bitmap, pgdir[i] + (j*PGSIZE) - start_phys_mem, 0);
+            pgdir[i] = 0;
+        }
    }
 
     __atomic_clear(&lock, __ATOMIC_SEQ_CST);
